@@ -1,148 +1,8 @@
 import { ArrowRight, Sparkles, Film, Quote, Camera, Star } from "lucide-react";
 import { Routes, Route, Link, useParams, useLocation } from "react-router-dom";
-
-const films = [
-  {
-    slug: "the-notebook",
-    year: "2004",
-    title: "The Notebook",
-    role: "Noah Calhoun",
-    note: "恋恋笔记本",
-    img: "",
-  },
-  {
-    slug: "drive",
-    year: "2011",
-    title: "Drive",
-    role: "Driver",
-    note: "决战小三之巅得主",
-    img: "/image/drive.PNG",
-  },
-  {
-    slug: "the-ides-of-march",
-    year: "2011",
-    title: "The Ides of March",
-    role: "Stephen Meyers",
-    note: "小政客太好法了婊子婊子婊子",
-    img: "/image/the ides of march.jpg",
-  },
-  {
-    slug: "the-place-beyond-the-pines",
-    year: "2012",
-    title: "The Place Beyound the Pines",
-    role: "Luke Glanton",
-    note: "导演我的艳尸去哪了",
-    img: "/image/the place beyond the pines.PNG",
-  },
-  {
-    slug: "la-la-land",
-    year: "2016",
-    title: "La La Land",
-    role: "Sebastian",
-    note: "哭死了我要法死你",
-    img: "",
-  },
-  {
-    slug: "blade-runner-2049",
-    year: "2017",
-    title: "Blade Runner 2049",
-    role: "K",
-    note: "“我把K嬷死了” 仿生人牛逼",
-    img: "",
-  },
-  {
-    slug: "first-man",
-    year: "2018",
-    title: "First Man",
-    role: "Neil Armstrong",
-    note: "登月第一人",
-    img: "",
-  },
-  {
-    slug: "barbie",
-    year: "2023",
-    title: "Barbie",
-    role: "Ken",
-    note: "无敌好嬷之金发碧眼性爱娃娃 两套器官持有者",
-    img: "/image/barbie.JPG",
-  },
-  {
-    slug: "the-fall-guy",
-    year: "2024",
-    title: "The Fall Guy",
-    role: "Colt Seavers",
-    note: "叫好不叫座之我草那么大的奶那么深的沟",
-    img: "/image/the fall guy.jpg",
-  },
-  {
-    slug: "project-hail-mary",
-    year: "2026",
-    title: "Project Hail Mary",
-    role: "Ryland Grace",
-    note: "太空麻辣教师我一天到晚一直一直一直想一直一直一直入",
-    img: "/image/project hail mary.JPG",
-  },
-];
-
-const interviews = [
-  {
-    slug: "gq-classic-man",
-    source: "GQ — The New Classic Man",
-    year: "2016",
-    text: "I'm just always looking for something that feels honest.",
-    summary:
-      "A profile focused on taste, masculinity, performance choices, and the appeal of sincerity in screen image.",
-  },
-  {
-    slug: "hollywood-reporter",
-    source: "The Hollywood Reporter",
-    year: "2017",
-    text: "I like characters who are a little bit damaged.",
-    summary:
-      "A conversation about complexity, restraint, and the appeal of characters who are emotionally fractured.",
-  },
-  {
-    slug: "esquire-made-to-last",
-    source: "Esquire — Made to Last",
-    year: "2022",
-    text: "The best part of this job is the people you get to meet.",
-    summary:
-      "An interview touching on longevity, collaboration, public image, and the social texture of filmmaking.",
-  },
-];
-
-const gallery = [
-  {
-    slug: "portrait-blue-suit",
-    title: "Blue Suit Portrait",
-    caption: "A polished editorial-style image with a softer public-facing mood.",
-    img: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    slug: "night-light-portrait",
-    title: "Night Light Portrait",
-    caption: "A cooler, more cinematic image shaped by shadow and coloured light.",
-    img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    slug: "black-white-study",
-    title: "Black and White Study",
-    caption: "A stripped-down portrait that emphasises facial expression and stillness.",
-    img: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    slug: "street-style-frame",
-    title: "Street Style Frame",
-    caption: "An image with a more casual energy and contemporary editorial feel.",
-    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    slug: "soft-neutral-portrait",
-    title: "Soft Neutral Portrait",
-    caption: "A cleaner, calmer frame that works well as archive material or section art.",
-    img: "https://images.unsplash.com/photo-1517602302552-471fe67acf66?auto=format&fit=crop&w=900&q=80",
-  },
-];
+import { films } from "./data/films";
+import { interviewEras } from "./data/interviews";
+import { gallery } from "./data/gallery";
 
 function NavLinkItem({ to, children }) {
   const location = useLocation();
@@ -256,17 +116,32 @@ function FilmCard({ film }) {
   );
 }
 
-function InterviewCard({ item }) {
+function EraCard({ era }) {
   return (
     <Link
-      to={`/interviews/${item.slug}`}
+      to={`/interviews/${era.slug}`}
       className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
     >
-      <p className="text-[18px] font-bold text-[#3b2a1a]">{item.source}</p>
-      <p className="mt-1 text-[16px] text-[#6b5948]">{item.year}</p>
-      <p className="mt-5 text-[22px] leading-[1.45] text-[#5a4631]">“{item.text}”</p>
-      <div className="mt-8 inline-flex rounded-full bg-[#9cc9ff] px-5 py-2 text-[14px] font-medium text-[#3b2a1a]">
-        Read more
+      <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.year}</p>
+      <h3 className="mt-2 text-[28px] font-bold leading-tight">{era.era}</h3>
+      <p className="mt-3 text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
+    </Link>
+  );
+}
+
+function InterviewItemCard({ eraSlug, item }) {
+  return (
+    <Link
+      to={`/interviews/${eraSlug}/${item.slug}`}
+      className="overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+    >
+      <img src={item.image} alt={item.title} className="h-52 w-full object-cover" />
+      <div className="p-6">
+        <p className="text-[15px] text-[#6b5948]">
+          {item.outlet} · {item.date}
+        </p>
+        <h4 className="mt-2 text-[26px] font-bold leading-tight">{item.title}</h4>
+        <p className="mt-4 text-[20px] leading-[1.5] text-[#5a4631]">“{item.quote}”</p>
       </div>
     </Link>
   );
@@ -352,9 +227,9 @@ function HomePage() {
           linkTo="/interviews"
           linkText="View all interviews"
         />
-        <div className="grid gap-6 md:grid-cols-3">
-          {interviews.map((item) => (
-            <InterviewCard key={item.slug} item={item} />
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {interviewEras.map((era) => (
+            <EraCard key={era.slug} era={era} />
           ))}
         </div>
       </section>
@@ -429,10 +304,32 @@ function InterviewsPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <h2 className="mb-8 text-[54px] font-bold uppercase">Interviews</h2>
-        <div className="grid gap-6 md:grid-cols-3">
-          {interviews.map((item) => (
-            <InterviewCard key={item.slug} item={item} />
+        <h2 className="mb-4 text-[54px] font-bold uppercase">Interviews</h2>
+        <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+          Interviews are organised by film era, so that each group reflects a distinct phase in Ryan Gosling’s screen image, publicity, and performance style.
+        </p>
+
+        <div className="space-y-16">
+          {interviewEras.map((era) => (
+            <section key={era.slug}>
+              <div className="mb-6 flex items-end justify-between gap-6">
+                <div>
+                  <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{era.year}</p>
+                  <h3 className="text-[38px] font-bold uppercase tracking-[-0.03em]">{era.era}</h3>
+                  <p className="mt-3 max-w-3xl text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
+                </div>
+
+                <Link to={`/interviews/${era.slug}`} className="shrink-0 text-[18px] text-[#6faef2] hover:underline">
+                  View era
+                </Link>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {era.items.map((item) => (
+                  <InterviewItemCard key={item.slug} eraSlug={era.slug} item={item} />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       </section>
@@ -440,15 +337,15 @@ function InterviewsPage() {
   );
 }
 
-function InterviewDetailPage() {
-  const { slug } = useParams();
-  const interview = interviews.find((i) => i.slug === slug);
+function InterviewEraPage() {
+  const { eraSlug } = useParams();
+  const era = interviewEras.find((e) => e.slug === eraSlug);
 
-  if (!interview) {
+  if (!era) {
     return (
       <Layout>
         <section className="mx-auto max-w-7xl px-10 py-20">
-          <p className="text-[22px]">Interview not found.</p>
+          <p className="text-[22px]">Interview era not found.</p>
         </section>
       </Layout>
     );
@@ -461,11 +358,66 @@ function InterviewDetailPage() {
           ← Back to Interviews
         </Link>
 
-        <div className="mt-8 rounded-[2rem] bg-[#f8e6a2] p-10 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
-          <p className="text-[16px] text-[#6b5948]">{interview.year}</p>
-          <h2 className="mt-2 text-[48px] font-bold leading-tight">{interview.source}</h2>
-          <p className="mt-8 max-w-3xl text-[28px] leading-[1.5] text-[#5a4631]">“{interview.text}”</p>
-          <p className="mt-8 max-w-3xl text-[20px] leading-[1.6] text-[#5a4631]">{interview.summary}</p>
+        <div className="mt-8">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+            {era.year} · {era.film}
+          </p>
+          <h2 className="mt-2 text-[54px] font-bold uppercase">{era.era}</h2>
+          <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+            {era.description}
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {era.items.map((item) => (
+            <InterviewItemCard key={item.slug} eraSlug={era.slug} item={item} />
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function InterviewDetailPage() {
+  const { eraSlug, interviewSlug } = useParams();
+  const era = interviewEras.find((e) => e.slug === eraSlug);
+  const interview = era?.items.find((item) => item.slug === interviewSlug);
+
+  if (!era || !interview) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-10 py-20">
+          <p className="text-[22px]">Interview not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <Link to={`/interviews/${era.slug}`} className="text-[#6faef2] hover:underline">
+          ← Back to {era.era}
+        </Link>
+
+        <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+          <img
+            src={interview.image}
+            alt={interview.title}
+            className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+          />
+
+          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+            <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.era}</p>
+            <h2 className="mt-2 text-[44px] font-bold leading-tight">{interview.title}</h2>
+            <p className="mt-3 text-[18px] text-[#6b5948]">
+              {interview.outlet} · {interview.date}
+            </p>
+
+            <p className="mt-8 text-[28px] leading-[1.5] text-[#5a4631]">“{interview.quote}”</p>
+
+            <p className="mt-8 text-[20px] leading-[1.7] text-[#5a4631]">{interview.summary}</p>
+          </div>
         </div>
       </section>
     </Layout>
@@ -532,7 +484,8 @@ export default function App() {
       <Route path="/filmography" element={<FilmographyPage />} />
       <Route path="/filmography/:slug" element={<FilmDetailPage />} />
       <Route path="/interviews" element={<InterviewsPage />} />
-      <Route path="/interviews/:slug" element={<InterviewDetailPage />} />
+      <Route path="/interviews/:eraSlug" element={<InterviewEraPage />} />
+      <Route path="/interviews/:eraSlug/:interviewSlug" element={<InterviewDetailPage />} />
       <Route path="/gallery" element={<GalleryPage />} />
       <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
     </Routes>
