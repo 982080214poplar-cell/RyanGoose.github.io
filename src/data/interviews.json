@@ -1,0 +1,128 @@
+[
+  {
+    "slug": "drive",
+    "era": "Drive Era",
+    "year": "2011",
+    "film": "Drive",
+    "description": "Interviews from the period surrounding Drive, focused on style, restraint, violence, and screen presence.",
+    "items": [
+      {
+        "slug": "cannes-conversation",
+        "title": "Cannes Conversation",
+        "outlet": "Festival Press",
+        "date": "2011",
+        "quote": "I was drawn to the stillness of the character.",
+        "summary": "A discussion of silence, gesture, and the role of visual cool in shaping the character.",
+        "image": "/image/drive.PNG"
+      },
+      {
+        "slug": "craft-profile",
+        "title": "Craft Profile",
+        "outlet": "Magazine Feature",
+        "date": "2011",
+        "quote": "Sometimes what you don't say becomes the performance.",
+        "summary": "An interview focusing on minimalism, physical acting, and the power of withholding emotion.",
+        "image": "/image/drive.PNG"
+      }
+    ]
+  },
+  {
+    "slug": "the-ides-of-march",
+    "era": "The Ides of March Era",
+    "year": "2011",
+    "film": "The Ides of March",
+    "description": "Interviews focused on politics, ambition, performance control, and the tension between image and sincerity.",
+    "items": [
+      {
+        "slug": "press-interview",
+        "title": "Press Interview",
+        "outlet": "Magazine Feature",
+        "date": "2011",
+        "quote": "He believes in the image until the image starts collapsing.",
+        "summary": "A discussion of power, image-management, and the emotional instability beneath political confidence.",
+        "image": "/image/the ides of march.jpg"
+      }
+    ]
+  },
+  {
+    "slug": "place-beyond-the-pines",
+    "era": "The Place Beyond the Pines Era",
+    "year": "2012",
+    "film": "The Place Beyond the Pines",
+    "description": "Interviews centred on masculinity, fatherhood, emotional damage, and the film's broader dramatic ambition.",
+    "items": [
+      {
+        "slug": "press-junket",
+        "title": "Press Junket Interview",
+        "outlet": "Studio Press",
+        "date": "2012",
+        "quote": "The character is driven by love, but in a destructive way.",
+        "summary": "A conversation about fractured masculinity, family, and why the role feels emotionally raw.",
+        "image": "/image/the place beyond the pines.PNG"
+      }
+    ]
+  },
+  {
+    "slug": "la-la-land",
+    "era": "La La Land Era",
+    "year": "2016",
+    "film": "La La Land",
+    "description": "Interviews from the La La Land period, often focusing on music, romance, performance chemistry, and classic Hollywood influence.",
+    "items": [
+      {
+        "slug": "awards-season-feature",
+        "title": "Awards Season Feature",
+        "outlet": "Film Magazine",
+        "date": "2016",
+        "quote": "It had to feel nostalgic, but also alive.",
+        "summary": "An interview discussing music, rehearsal, romance, and the balance between stylisation and sincerity.",
+        "image": "/image/project hail mary.JPG"
+      }
+    ]
+  },
+  {
+    "slug": "blade-runner-2049",
+    "era": "Blade Runner 2049 Era",
+    "year": "2017",
+    "film": "Blade Runner 2049",
+    "description": "Interviews focused on atmosphere, interiority, science fiction, and the emotional compression of the role.",
+    "items": [
+      {
+        "slug": "hollywood-reporter",
+        "title": "The Hollywood Reporter Interview",
+        "outlet": "The Hollywood Reporter",
+        "date": "2017",
+        "quote": "I like characters who are a little bit damaged.",
+        "summary": "A discussion of inwardness, ambiguity, and why emotionally fractured characters are compelling.",
+        "image": "/image/the ides of march.jpg"
+      }
+    ]
+  },
+  {
+    "slug": "barbie",
+    "era": "Barbie Era",
+    "year": "2023",
+    "film": "Barbie",
+    "description": "Interviews from the Barbie period, often playful in tone and centred on comedy, masculinity, performance image, and public visibility.",
+    "items": [
+      {
+        "slug": "vogue-feature",
+        "title": "Vogue Feature",
+        "outlet": "Vogue",
+        "date": "2023",
+        "quote": "Ken only exists if Barbie looks at him.",
+        "summary": "A playful interview exploring comedy, self-awareness, and the strange emotional logic of Ken.",
+        "image": "/image/barbie.JPG"
+      },
+      {
+        "slug": "press-conference",
+        "title": "Press Conference",
+        "outlet": "Global Press Tour",
+        "date": "2023",
+        "quote": "You have to commit completely to the absurdity.",
+        "summary": "A lively press conversation about humour, sincerity, spectacle, and why the role resonated so strongly.",
+        "image": "/image/barbie.JPG"
+      }
+    ]
+  }
+]

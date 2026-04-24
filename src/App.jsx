@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
-import { Routes, Route, Link, useParams, useLocation } from "react-router-dom";
-import { films } from "./data/films";
-import { interviewEras } from "./data/interviews";
+import { Routes, Route, Link, Navigate, useParams, useLocation } from "react-router-dom";
+import films from "./data/films.json";
+import interviewEras from "./data/interviews.json";
 import gallery from "./data/gallery.json";
-import { snlSeasons } from "./data/snl";
-import { reasons } from "./data/reasons";
+import handcraftSections from "./data/handcraft.json";
+import snlSeasons from "./data/snl.json";
+import reasons from "./data/reasons.json";
 
 function NavLinkItem({ to, children }) {
   const location = useLocation();
@@ -15,6 +16,25 @@ function NavLinkItem({ to, children }) {
     <Link
       to={to}
       className="group/nav relative inline-flex pb-2 uppercase tracking-[0.08em] transition hover:text-[#3b2a1a]"
+    >
+      {children}
+      <span
+        className={`absolute bottom-0 left-1/2 h-[4px] -translate-x-1/2 rounded-full bg-[#6faef2] transition-all duration-300 ease-out ${
+          isActive ? "w-full" : "w-0 group-hover/nav:w-full"
+        }`}
+      />
+    </Link>
+  );
+}
+
+function MoreArchiveLink({ to, children }) {
+  const location = useLocation();
+  const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
+
+  return (
+    <Link
+      to={to}
+      className="group/nav relative inline-flex pb-2 text-[18px] font-medium uppercase tracking-[0.08em] transition hover:text-[#3b2a1a]"
     >
       {children}
       <span
@@ -77,13 +97,14 @@ function Layout({ children }) {
               More archive sections
             </p>
 
-            <Link
-              to="/saturday-night-live"
-              className="group/nav relative inline-flex pb-2 text-[18px] font-medium uppercase tracking-[0.08em] transition hover:text-[#3b2a1a]"
-            >
-              Saturday Night Live
-              <span className="absolute bottom-0 left-1/2 h-[4px] w-0 -translate-x-1/2 rounded-full bg-[#6faef2] transition-all duration-300 ease-out group-hover/nav:w-full" />
-            </Link>
+            <div className="flex flex-wrap gap-x-8 gap-y-4">
+              <MoreArchiveLink to="/saturday-night-live">
+                Saturday Night Live
+              </MoreArchiveLink>
+              <MoreArchiveLink to="/handcraft">
+                Handcraft
+              </MoreArchiveLink>
+            </div>
           </div>
         </div>
       </header>
@@ -149,6 +170,13 @@ function Layout({ children }) {
             className="transition hover:text-[#6faef2]"
           >
             Saturday Night Live
+          </Link>
+          <Link
+            to="/handcraft"
+            onClick={() => setIsSidebarOpen(false)}
+            className="transition hover:text-[#6faef2]"
+          >
+            Handcraft
           </Link>
         </nav>
       </aside>
@@ -1031,6 +1059,84 @@ function ReasonDetailPage() {
   );
 }
 
+function HandcraftPage() {
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" />
+        <h2 className="mb-4 mt-8 text-[38px] font-bold uppercase md:text-[54px]">
+          Handcraft
+        </h2>
+
+        <p className="mb-10 max-w-3xl text-[20px] leading-[1.6] text-[#5a4631] md:text-[22px]">
+          A place for handcraft plans, sketches, and archive-style notes.
+        </p>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          {handcraftSections.map((item) => (
+            <Link
+              key={item.slug}
+              to={`/handcraft/${item.slug}`}
+              className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+            >
+              <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+                {item.eyebrow}
+              </p>
+              <h3 className="mt-2 text-[30px] font-bold uppercase md:text-[38px]">
+                {item.title}
+              </h3>
+              <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">
+                {item.summary}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function HandcraftDetailPage() {
+  const { handcraftSlug } = useParams();
+  const item = handcraftSections.find((section) => section.slug === handcraftSlug);
+
+  if (!item) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
+          <p className="text-[22px]">Handcraft section not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/handcraft" label="Back to Handcraft" />
+
+        <div className="mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+            {item.eyebrow}
+          </p>
+          <h2 className="mt-2 text-[38px] font-bold uppercase leading-tight md:text-[54px]">
+            {item.title}
+          </h2>
+          <p className="mt-8 max-w-3xl text-[20px] leading-[1.7] text-[#5a4631]">
+            {item.content}
+          </p>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function LegacyHandcraftRedirect() {
+  const { handcraftSlug } = useParams();
+
+  return <Navigate to={`/handcraft/${handcraftSlug}`} replace />;
+}
+
 function SNLPage() {
   return (
     <Layout>
@@ -1182,9 +1288,15 @@ export default function App() {
         <Route path="/gallery/year/:year" element={<GalleryPage />} />
         <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
 
+        <Route path="/handcraft" element={<HandcraftPage />} />
+        <Route path="/handcraft/:handcraftSlug" element={<HandcraftDetailPage />} />
+        <Route path="/handmade-drawings" element={<Navigate to="/handcraft" replace />} />
+        <Route path="/handmade-drawings/:handcraftSlug" element={<LegacyHandcraftRedirect />} />
+
         <Route path="/saturday-night-live" element={<SNLPage />} />
         <Route path="/saturday-night-live/:seasonSlug" element={<SNLSeasonPage />} />
         <Route path="/saturday-night-live/:seasonSlug/:episodeSlug" element={<SNLEpisodePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
