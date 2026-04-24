@@ -3,11 +3,13 @@
 html, body, #root {
   height: 100%;
   margin: 0;
+  overflow-x: clip;
   padding: 0;
 }
 
 body {
   display: block !important;
+  width: 100%;
 }
 
 .site-nav {
@@ -36,6 +38,40 @@ body {
     transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
     color 150ms ease,
     visibility 0ms linear 0ms;
+}
+
+.hero-deck-stage {
+  height: 520px;
+}
+
+.hero-deck-inner {
+  transform: translateX(-59%) scale(calc(0.78 * var(--hero-deck-fade-scale, 1)));
+}
+
+.hero-deck-fade {
+  animation: heroDeckFadeIn 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (min-width: 1280px) {
+  .hero-deck-stage {
+    height: 650px;
+  }
+
+  .hero-deck-inner {
+    transform: translateX(-59%) scale(var(--hero-deck-fade-scale, 1));
+  }
+}
+
+@keyframes heroDeckFadeIn {
+  from {
+    --hero-deck-fade-scale: 0.96;
+    opacity: 0.08;
+  }
+
+  to {
+    --hero-deck-fade-scale: 1;
+    opacity: 1;
+  }
 }
 
 @media (min-width: 920px) {

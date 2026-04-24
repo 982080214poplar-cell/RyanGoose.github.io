@@ -297,7 +297,7 @@ function HeroImageDeck() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
   const [hearts, setHearts] = useState([]);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
   const deckRef = useRef(null);
 
   const cardWidth = 520;
@@ -308,12 +308,15 @@ function HeroImageDeck() {
   const deckImages = gallery.slice(0, 5);
 
   useEffect(() => {
-    function handleResize() {
-      setIsDesktop(window.innerWidth >= 1024);
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+
+    function handleChange(event) {
+      setIsDesktop(event.matches);
     }
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    setIsDesktop(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   function handleClick(event) {
@@ -381,12 +384,13 @@ function HeroImageDeck() {
   if (!isDesktop) {
     return (
       <div
+        key="mobile-hero-deck"
         ref={deckRef}
-        className="relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible transition-[max-width,margin,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        className="hero-deck-fade relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible"
       >
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute -left-[42vw] top-[38px] z-0 h-[190px] w-[calc(70vw+120px)] overflow-visible text-[#9cc9ff] lg:hidden"
+          className="pointer-events-none absolute -left-[42dvw] top-[38px] z-0 h-[190px] w-[calc(70dvw+120px)] overflow-visible text-[#9cc9ff] lg:hidden"
           viewBox="0 0 520 190"
           preserveAspectRatio="none"
         >
@@ -466,10 +470,10 @@ function HeroImageDeck() {
   }
 
   return (
-    <div className="relative h-[520px] w-full max-w-[1160px] overflow-visible transition-[height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:h-[650px]">
+    <div key="desktop-hero-deck" className="hero-deck-fade hero-deck-stage relative w-full max-w-[1160px] overflow-visible">
       <div
         ref={deckRef}
-        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[59%] scale-[0.78] cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0 xl:scale-100"
+        className="hero-deck-inner absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0"
       >
         <svg
           aria-hidden="true"
@@ -619,11 +623,11 @@ function HomePage() {
   return (
     <Layout>
       <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 md:px-10">
-        <div className="grid grid-cols-1 items-center gap-12 transition-[gap] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]">
+        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]">
           <div className="relative z-30">
             <svg
               aria-hidden="true"
-              className="pointer-events-none absolute -left-24 top-[42px] z-0 h-[190px] w-[calc(100vw+10rem)] overflow-visible text-[#9cc9ff] lg:hidden"
+              className="pointer-events-none absolute -left-24 top-[42px] z-0 h-[190px] w-[calc(100dvw+10rem)] overflow-visible text-[#9cc9ff] lg:hidden"
               viewBox="0 0 640 190"
               preserveAspectRatio="none"
             >
@@ -652,7 +656,7 @@ function HomePage() {
 
             <Link
               to="/100-reasons"
-              className="title-reveal relative z-10 block max-w-[clamp(18rem,52vw,36rem)] text-[clamp(48px,12.4vw,88px)] font-bold uppercase leading-[0.9] tracking-[-0.04em] transition-[font-size,max-width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="title-reveal relative z-10 block max-w-[clamp(18rem,52vw,36rem)] text-[clamp(48px,12.4vw,88px)] font-bold uppercase leading-[0.95] tracking-[-0.04em]"
             >
               <svg
                 aria-hidden="true"
@@ -683,7 +687,7 @@ function HomePage() {
 
             <div className="relative z-10 mt-7 h-[4px] w-40 rounded-full bg-[#6faef2]" />
 
-            <p className="relative z-10 mt-8 text-[clamp(22px,2.2vw,30px)] leading-[1.2] transition-[font-size] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
+            <p className="relative z-10 mt-8 text-[clamp(22px,2.2vw,30px)] leading-[1.2]">
               <span className="block whitespace-nowrap sm:hidden">Ryan Gosling centered</span>
               <span className="block whitespace-nowrap sm:hidden">collection of films,</span>
               <span className="block whitespace-nowrap sm:hidden">interviews and images.</span>
@@ -699,7 +703,7 @@ function HomePage() {
             </p>
           </div>
 
-          <div className="relative z-10 flex justify-center transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]">
+          <div className="relative z-10 flex justify-center">
             <HeroImageDeck />
           </div>
         </div>
