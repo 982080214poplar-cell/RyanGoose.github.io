@@ -9,3 +9,20 @@ html, body, #root {
 body {
   display: block !important;
 }
+
+@keyframes heartFloat {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -95%) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -160%) scale(1.6);
+  }
+}

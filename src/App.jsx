@@ -1,9 +1,11 @@
-import { ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
 import { Routes, Route, Link, useParams, useLocation } from "react-router-dom";
 import { films } from "./data/films";
 import { interviewEras } from "./data/interviews";
 import { gallery } from "./data/gallery";
 import { snlSeasons } from "./data/snl";
+import { reasons } from "./data/reasons";
 
 function NavLinkItem({ to, children }) {
   const location = useLocation();
@@ -22,42 +24,52 @@ function NavLinkItem({ to, children }) {
 }
 
 function Layout({ children }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#f6d97a] text-[#3b2a1a]">
-      
-      <header className="group relative z-40 bg-[#f6d97a] px-10 py-7">
-        
-        {/* 上半部分（固定高度） */}
+      <header className="group relative z-40 bg-[#f6d97a] px-6 py-6 md:px-10 md:py-7">
         <div className="mx-auto flex max-w-7xl items-start justify-between gap-10">
           <Link
             to="/"
-            className="text-[22px] font-semibold uppercase tracking-[0.14em] leading-[1.5]"
+            className="text-[20px] font-semibold uppercase leading-[1.5] tracking-[0.14em] md:text-[22px]"
           >
             RYAN GOSLING
             <br />
             ARCHIVE
           </Link>
 
-          <nav className="flex gap-8 text-[17px]">
+          {/* Desktop nav */}
+          <nav className="hidden gap-8 text-[17px] md:flex">
             <NavLinkItem to="/">Home</NavLinkItem>
             <NavLinkItem to="/filmography">Filmography</NavLinkItem>
             <NavLinkItem to="/interviews">Interviews</NavLinkItem>
             <NavLinkItem to="/gallery">Gallery</NavLinkItem>
           </nav>
+
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="rounded-full bg-[#9cc9ff] p-3 shadow md:hidden"
+            aria-label="Open navigation menu"
+          >
+            <Menu size={22} />
+          </button>
         </div>
 
-        {/* 下半部分（延伸区域） */}
+        {/* Desktop hover extension */}
         <div
           className="
-            mx-auto max-w-7xl
+            mx-auto hidden max-w-7xl
             overflow-hidden
             max-h-0
             transition-all duration-300 ease-in-out
             group-hover:max-h-40
+            md:block
           "
         >
           <div className="mt-6 border-t border-[#3b2a1a]/20 pt-5">
-            
             <p className="mb-3 text-[12px] uppercase tracking-[0.16em] text-[#3b2a1a]/60">
               More archive sections
             </p>
@@ -68,14 +80,77 @@ function Layout({ children }) {
             >
               Saturday Night Live
             </Link>
-
           </div>
         </div>
       </header>
 
+      {/* Mobile sidebar backdrop */}
+      <div
+        onClick={() => setIsSidebarOpen(false)}
+        className={`fixed inset-0 z-50 bg-black/30 transition-opacity duration-300 md:hidden ${
+          isSidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      {/* Mobile sidebar */}
+      <aside
+        className={`fixed left-0 top-0 z-50 h-full w-[78%] max-w-[320px] bg-[#f6d97a] px-6 py-7 shadow-2xl transition-transform duration-300 md:hidden ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="mb-10 flex items-start justify-between">
+          <Link
+            to="/"
+            onClick={() => setIsSidebarOpen(false)}
+            className="text-[20px] font-semibold uppercase leading-[1.5] tracking-[0.14em]"
+          >
+            RYAN GOSLING
+            <br />
+            ARCHIVE
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(false)}
+            className="rounded-full bg-[#9cc9ff] p-2"
+            aria-label="Close navigation menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <nav className="flex flex-col gap-5 text-[22px] font-medium">
+          <Link to="/" onClick={() => setIsSidebarOpen(false)}>
+            Home
+          </Link>
+          <Link to="/filmography" onClick={() => setIsSidebarOpen(false)}>
+            Filmography
+          </Link>
+          <Link to="/interviews" onClick={() => setIsSidebarOpen(false)}>
+            Interviews
+          </Link>
+          <Link to="/gallery" onClick={() => setIsSidebarOpen(false)}>
+            Gallery
+          </Link>
+
+          <div className="my-3 border-t border-[#3b2a1a]/20" />
+
+          <p className="text-[12px] uppercase tracking-[0.16em] text-[#3b2a1a]/60">
+            More archive sections
+          </p>
+
+          <Link
+            to="/saturday-night-live"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            Saturday Night Live
+          </Link>
+        </nav>
+      </aside>
+
       {children}
 
-      <footer className="mx-auto mt-8 max-w-7xl border-t border-[#3b2a1a]/20 px-10 py-10 text-center text-[15px] text-[#5b4a37]">
+      <footer className="mx-auto mt-8 max-w-7xl border-t border-[#3b2a1a]/20 px-6 py-10 text-center text-[15px] text-[#5b4a37] md:px-10">
         This is an unofficial fan site and is not affiliated with Ryan Gosling or any official representatives.
       </footer>
     </div>
@@ -160,56 +235,276 @@ function GalleryCard({ item }) {
   );
 }
 
+function HeroImageDeck() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeCard, setActiveCard] = useState(null);
+  const [hearts, setHearts] = useState([]);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
+
+  const mainImage = "/image/hothothot.JPG";
+  const deckImages = gallery.slice(0, 5);
+
+  useEffect(() => {
+    function handleResize() {
+      setIsDesktop(window.innerWidth >= 1280);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const mainLeft = isDesktop
+    ? isOpen
+      ? 560
+      : 500
+    : 40;
+
+  function handleClick(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    const newHeart = {
+      id: crypto.randomUUID(),
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+
+    setHearts((current) => [...current, newHeart]);
+
+    setTimeout(() => {
+      setHearts((current) =>
+        current.filter((heart) => heart.id !== newHeart.id)
+      );
+    }, 1200);
+  }
+
+  function getCardLeft(index) {
+    if (isDesktop) {
+      if (!isOpen) return 520;
+      if (activeCard === null) return 260 + index * 36;
+      if (index === activeCard) return 250;
+      if (index < activeCard) return 90 + index * 52;
+      return 455 + (index - activeCard - 1) * 44;
+    }
+
+    if (!isOpen) return 40;
+    if (activeCard === null) return 120 + index * 36;
+    if (index === activeCard) return 120;
+    if (index < activeCard) return 20 + index * 52;
+    return 325 + (index - activeCard - 1) * 44;
+  }
+
+  function getCardZ(index) {
+    if (activeCard === index) return 90;
+    if (activeCard !== null && index > activeCard) return 100 + index;
+    return 20 + index;
+  }
+
+  function getHitboxWidth(index) {
+    if (activeCard === null) return 46;
+    if (index === activeCard) return 360;
+    return 46;
+  }
+
+  if (!isDesktop) {
+    return (
+      <div
+        onClick={handleClick}
+        onDoubleClick={() => setIsOpen((current) => !current)}
+        className="relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible"
+      >
+        <div className="rounded-[2.5rem] bg-[#9cc9ff] p-4 shadow-[0_20px_40px_rgba(59,42,26,0.14)]">
+          <div className="overflow-hidden rounded-[2rem]">
+            <img
+              src={mainImage}
+              alt="Ryan Gosling"
+              className="h-[520px] w-full object-cover"
+            />
+          </div>
+        </div>
+
+        <div
+          className={`mt-6 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isOpen ? "max-h-[290px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {deckImages.map((item) => (
+              <Link
+                key={item.slug}
+                to={`/gallery/${item.slug}`}
+                className="shrink-0 rounded-[1.8rem] bg-[#9cc9ff] p-3 shadow-[0_12px_24px_rgba(59,42,26,0.12)]"
+              >
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="h-[240px] w-[170px] rounded-[1.4rem] object-cover"
+                />
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {hearts.map((heart) => (
+          <span
+            key={heart.id}
+            className="pointer-events-none absolute z-[300] text-[34px] text-[#9cc9ff] animate-[heartFloat_1200ms_ease-out_forwards]"
+            style={{
+              left: heart.x,
+              top: heart.y,
+            }}
+          >
+            ♥
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-[650px] w-full max-w-[1160px] overflow-visible">
+      <div
+        onClick={handleClick}
+        onDoubleClick={() => {
+          setIsOpen((current) => !current);
+          setActiveCard(null);
+        }}
+        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[55%] cursor-pointer select-none"
+      >
+        {deckImages.map((item, index) => {
+          const isActive = activeCard === index;
+
+          return (
+            <div
+              key={item.slug}
+              className="absolute top-[28px] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              style={{
+                left: `${getCardLeft(index)}px`,
+                opacity: isOpen ? 1 : 0,
+                zIndex: getCardZ(index),
+                pointerEvents: "none",
+                transform: isActive ? "translateY(-6px)" : "translateY(0)",
+              }}
+            >
+              <div className="h-full overflow-hidden rounded-[2.5rem]">
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            </div>
+          );
+        })}
+
+        {isOpen &&
+          deckImages.map((item, index) => (
+            <button
+              key={`hitbox-${item.slug}`}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setActiveCard((current) =>
+                  current === index ? null : index
+                );
+              }}
+              className="absolute top-[28px] h-[620px] rounded-[3rem] transition-transform duration-300 hover:-translate-y-2"
+              style={{
+                left: `${getCardLeft(index)}px`,
+                width: `${getHitboxWidth(index)}px`,
+                zIndex: 260 + index,
+                background: "transparent",
+              }}
+              aria-label={`Open ${item.title}`}
+            />
+          ))}
+
+        <div
+          className="absolute top-[28px] z-[180] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{
+            left: `${mainLeft}px`,
+          }}
+        >
+          <div className="h-full overflow-hidden rounded-[2.5rem]">
+            <img
+              src={mainImage}
+              alt="Ryan Gosling"
+              className="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+
+        <div
+          className="pointer-events-none absolute top-0 h-[620px] rounded-[3rem] border-2 border-[#3b2a1a]/15 transition-all duration-700"
+          style={{
+            left: `${mainLeft - 20}px`,
+            width: "560px",
+          }}
+        />
+
+        {hearts.map((heart) => (
+          <span
+            key={heart.id}
+            className="pointer-events-none absolute z-[300] text-[34px] text-[#9cc9ff] animate-[heartFloat_1200ms_ease-out_forwards]"
+            style={{
+              left: heart.x,
+              top: heart.y,
+            }}
+          >
+            ♥
+          </span>
+        ))}
+
+        <div className="absolute bottom-8 right-24 z-[300] rounded-full bg-[#fff1b5] px-5 py-3 text-[14px] shadow">
+          Double click to open · click a card
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HomePage() {
   return (
     <Layout>
-      <section className="relative mx-auto max-w-7xl px-10 pb-12 pt-6">
-        <div className="grid items-center gap-14 lg:grid-cols-[1fr_0.95fr]">
+      <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 md:px-10">
+        <div className="grid grid-cols-1 items-center gap-12 xl:grid-cols-[1fr_0.95fr]">
           <div className="relative z-10">
             <div className="mb-7 inline-flex items-center gap-2 text-[16px] font-medium uppercase tracking-[0.08em] text-[#6faef2]">
               <Sparkles size={16} />
               Unofficial Fan Archive
             </div>
 
-            <h2 className="max-w-xl text-[88px] font-bold uppercase leading-[0.9] tracking-[-0.04em]">
+            <Link
+              to="/100-reasons"
+              className="block max-w-xl text-[56px] font-bold uppercase leading-[0.9] tracking-[-0.04em] transition hover:text-[#6faef2] md:text-[88px]"
+            >
               100 reasons
               <br />
               to love
               <br />
               Ryan Gosling
-            </h2>
+            </Link>
 
             <div className="mt-7 h-[4px] w-40 rounded-full bg-[#6faef2]" />
 
-            <p className="mt-8 max-w-xl text-[30px] leading-[1.18]">
+            <p className="mt-8 max-w-xl text-[24px] leading-[1.18] md:text-[30px]">
               Ryan Gosling centered collection of films, interviews and images.
             </p>
           </div>
 
-          <div className="relative z-10">
-            <div className="relative mx-auto w-full max-w-[520px]">
-              <div className="absolute -left-5 -top-5 h-full w-full rounded-[3rem] border-2 border-[#3b2a1a]/15" />
-
-              <div className="rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.12)]">
-                <div className="overflow-hidden rounded-[2.5rem]">
-                  <img
-                    src="/image/hothothot.JPG"
-                    alt="Ryan Gosling inspired hero"
-                    className="h-[620px] w-full object-cover"
-                  />
-                </div>
-              </div>
-
-              <div className="absolute -bottom-6 right-[-20px] rounded-full bg-[#fff1b5] px-5 py-3 text-[14px] font-medium shadow-[0_10px_20px_rgba(59,42,26,0.08)]">
-                He is so fucking hot
-              </div>
-            </div>
+          <div className="relative z-10 flex justify-center">
+            <HeroImageDeck />
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-10 pb-12 pt-4">
-        <SectionHeader icon={<Film className="text-[#6faef2]" />} title="Filmography" linkTo="/filmography" linkText="View all films" />
+      <section className="mx-auto max-w-7xl px-6 pb-12 pt-4 md:px-10">
+        <SectionHeader
+          icon={<Film className="text-[#6faef2]" />}
+          title="Filmography"
+          linkTo="/filmography"
+          linkText="View all films"
+        />
+
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           {films.map((film) => (
             <FilmCard key={film.slug} film={film} />
@@ -217,8 +512,14 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-10 pb-12 pt-8">
-        <SectionHeader icon={<Quote className="text-[#6faef2]" />} title="Interviews" linkTo="/interviews" linkText="View all interviews" />
+      <section className="mx-auto max-w-7xl px-6 pb-12 pt-8 md:px-10">
+        <SectionHeader
+          icon={<Quote className="text-[#6faef2]" />}
+          title="Interviews"
+          linkTo="/interviews"
+          linkText="View all interviews"
+        />
+
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {interviewEras.map((era) => (
             <EraCard key={era.slug} era={era} />
@@ -226,8 +527,14 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-8">
-        <SectionHeader icon={<Camera className="text-[#6faef2]" />} title="Gallery" linkTo="/gallery" linkText="View full gallery" />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-8 md:px-10">
+        <SectionHeader
+          icon={<Camera className="text-[#6faef2]" />}
+          title="Gallery"
+          linkTo="/gallery"
+          linkText="View full gallery"
+        />
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
           {gallery.map((item) => (
             <GalleryCard key={item.slug} item={item} />
@@ -497,6 +804,82 @@ function GalleryDetailPage() {
     </Layout>
   );
 }
+function ReasonsPage() {
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <h2 className="mb-4 text-[54px] font-bold uppercase">
+          100 Reasons to Love Ryan Gosling
+        </h2>
+
+        <p className="mb-10 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+          A directory-style archive of 100 reasons. Each entry can be opened and edited later.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {reasons.map((reason) => (
+            <Link
+              key={reason.slug}
+              to={`/100-reasons/${reason.slug}`}
+              className="rounded-[1.25rem] bg-[#f8e6a2] p-5 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+            >
+              <p className="text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
+                Reason {reason.number}
+              </p>
+
+              <h3 className="mt-2 text-[24px] font-bold leading-tight">
+                {reason.title}
+              </h3>
+
+              <p className="mt-3 text-[16px] leading-[1.5] text-[#5a4631]">
+                {reason.summary}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function ReasonDetailPage() {
+  const { reasonSlug } = useParams();
+  const reason = reasons.find((item) => item.slug === reasonSlug);
+
+  if (!reason) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-10 py-20">
+          <p className="text-[22px]">Reason not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <Link to="/100-reasons" className="text-[#6faef2] hover:underline">
+          ← Back to 100 Reasons
+        </Link>
+
+        <div className="mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+            Reason {reason.number}
+          </p>
+
+          <h2 className="mt-2 text-[54px] font-bold uppercase leading-tight">
+            {reason.title}
+          </h2>
+
+          <p className="mt-8 max-w-3xl text-[22px] leading-[1.7] text-[#5a4631]">
+            {reason.content}
+          </p>
+        </div>
+      </section>
+    </Layout>
+  );
+}
 
 function SNLPage() {
   return (
@@ -635,6 +1018,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+
+      <Route path="/100-reasons" element={<ReasonsPage />} />
+      <Route path="/100-reasons/:reasonSlug" element={<ReasonDetailPage />} />
 
       <Route path="/filmography" element={<FilmographyPage />} />
       <Route path="/filmography/:slug" element={<FilmDetailPage />} />
