@@ -55,15 +55,14 @@ function Layout({ children }) {
         <div className="mx-auto flex max-w-7xl items-start justify-between gap-10">
           <Link
             to="/"
-            className="text-[20px] font-semibold uppercase leading-[1.5] tracking-[0.14em] md:text-[22px]"
+            className="shrink-0 text-[20px] font-semibold uppercase leading-[1.5] tracking-[0.14em] md:text-[22px]"
           >
-            RYAN GOSLING
-            <br />
-            ARCHIVE
+            <span className="block whitespace-nowrap">RYAN GOSLING</span>
+            <span className="block whitespace-nowrap">ARCHIVE</span>
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden gap-8 text-[17px] md:flex">
+          <nav className="site-nav flex gap-8 text-[17px]">
             <NavLinkItem to="/">Home</NavLinkItem>
             <NavLinkItem to="/filmography">Filmography</NavLinkItem>
             <NavLinkItem to="/interviews">Interviews</NavLinkItem>
@@ -74,7 +73,7 @@ function Layout({ children }) {
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="rounded-full bg-transparent p-3 text-[#3b2a1a] transition hover:text-[#6faef2] md:hidden"
+            className="mobile-menu-trigger rounded-full bg-transparent p-3 text-[#3b2a1a] transition hover:text-[#6faef2]"
             aria-label="Open navigation menu"
           >
             <Menu size={22} />
@@ -298,7 +297,7 @@ function HeroImageDeck() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
   const [hearts, setHearts] = useState([]);
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const deckRef = useRef(null);
 
   const cardWidth = 520;
@@ -310,7 +309,7 @@ function HeroImageDeck() {
 
   useEffect(() => {
     function handleResize() {
-      setIsDesktop(window.innerWidth >= 1280);
+      setIsDesktop(window.innerWidth >= 1024);
     }
 
     window.addEventListener("resize", handleResize);
@@ -383,12 +382,36 @@ function HeroImageDeck() {
     return (
       <div
         ref={deckRef}
-        className="relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible"
+        className="relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible transition-[max-width,margin,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
       >
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-[42vw] top-[38px] z-0 h-[190px] w-[calc(70vw+120px)] overflow-visible text-[#9cc9ff] lg:hidden"
+          viewBox="0 0 520 190"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M 0 114 C 92 104 174 88 250 62 C 326 36 404 28 520 26"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="3.5"
+            opacity="0.66"
+          />
+          <path
+            d="M 0 146 C 96 136 180 120 258 96 C 334 72 414 64 520 62"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="3.5"
+            opacity="0.48"
+          />
+        </svg>
+
         <div
           onClick={handleClick}
           onDoubleClick={() => setIsOpen((current) => !current)}
-          className="rounded-[2.5rem] bg-[#9cc9ff] p-4 shadow-[0_20px_40px_rgba(59,42,26,0.14)]"
+          className="relative z-10 rounded-[2.5rem] bg-[#9cc9ff] p-4 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
         >
           <div className="overflow-hidden rounded-[2rem]">
             <img
@@ -443,10 +466,10 @@ function HeroImageDeck() {
   }
 
   return (
-    <div className="relative h-[650px] w-full max-w-[1160px] overflow-visible">
+    <div className="relative h-[520px] w-full max-w-[1160px] overflow-visible transition-[height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:h-[650px]">
       <div
         ref={deckRef}
-        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[59%] cursor-pointer select-none xl:z-0"
+        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[59%] scale-[0.78] cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0 xl:scale-100"
       >
         <svg
           aria-hidden="true"
@@ -596,11 +619,11 @@ function HomePage() {
   return (
     <Layout>
       <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 md:px-10">
-        <div className="grid grid-cols-1 items-center gap-12 xl:grid-cols-[1fr_0.95fr]">
+        <div className="grid grid-cols-1 items-center gap-12 transition-[gap] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]">
           <div className="relative z-30">
             <svg
               aria-hidden="true"
-              className="pointer-events-none absolute -left-24 top-[42px] z-0 h-[190px] w-[calc(100vw+10rem)] overflow-visible text-[#9cc9ff] xl:hidden"
+              className="pointer-events-none absolute -left-24 top-[42px] z-0 h-[190px] w-[calc(100vw+10rem)] overflow-visible text-[#9cc9ff] lg:hidden"
               viewBox="0 0 640 190"
               preserveAspectRatio="none"
             >
@@ -622,24 +645,6 @@ function HomePage() {
               />
             </svg>
 
-            <svg
-              aria-hidden="true"
-              className="pointer-events-none absolute -left-4 top-[138px] z-20 h-10 w-10 text-[#9cc9ff] sm:-left-5 sm:top-[135px] sm:h-12 sm:w-12 md:-left-8 md:top-[190px] md:h-16 md:w-16 xl:-left-9 xl:top-[190px]"
-              viewBox="0 0 80 80"
-            >
-              <g fill="currentColor">
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(45 40 40)" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(90 40 40)" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(135 40 40)" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(180 40 40)" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(225 40 40)" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(270 40 40)" />
-                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(315 40 40)" />
-                <circle cx="40" cy="40" r="5.5" />
-              </g>
-            </svg>
-
             <div className="relative z-10 mb-7 inline-flex items-center gap-2 text-[16px] font-medium uppercase tracking-[0.08em] text-[#6faef2]">
               <Sparkles size={16} />
               Unofficial Fan Archive
@@ -647,32 +652,54 @@ function HomePage() {
 
             <Link
               to="/100-reasons"
-              className="title-reveal relative z-10 block max-w-xl text-[56px] font-bold uppercase leading-[0.9] tracking-[-0.04em] md:text-[88px]"
+              className="title-reveal relative z-10 block max-w-[clamp(18rem,52vw,36rem)] text-[clamp(48px,12.4vw,88px)] font-bold uppercase leading-[0.9] tracking-[-0.04em] transition-[font-size,max-width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
             >
-              <span className="block">
-                100 reasons
-                <br />
-                to love
-                <br />
-                Ryan Gosling
-              </span>
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute left-[0.055em] top-[1.93em] z-20 h-[0.72em] w-[0.72em] -translate-x-1/2 -translate-y-1/2 text-[#9cc9ff]"
+                viewBox="0 0 80 80"
+              >
+                <g fill="currentColor">
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(45 40 40)" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(90 40 40)" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(135 40 40)" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(180 40 40)" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(225 40 40)" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(270 40 40)" />
+                  <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(315 40 40)" />
+                  <circle cx="40" cy="40" r="5.5" />
+                </g>
+              </svg>
+              <span className="block whitespace-nowrap">100 reasons</span>
+              <span className="block whitespace-nowrap">to love</span>
+              <span className="block whitespace-nowrap">Ryan Gosling</span>
               <span aria-hidden="true" className="title-reveal-blue absolute inset-0 block text-[#6faef2]">
-                100 reasons
-                <br />
-                to love
-                <br />
-                Ryan Gosling
+                <span className="block whitespace-nowrap">100 reasons</span>
+                <span className="block whitespace-nowrap">to love</span>
+                <span className="block whitespace-nowrap">Ryan Gosling</span>
               </span>
             </Link>
 
             <div className="relative z-10 mt-7 h-[4px] w-40 rounded-full bg-[#6faef2]" />
 
-            <p className="relative z-10 mt-8 max-w-xl text-[24px] leading-[1.18] md:text-[30px]">
-              Ryan Gosling centered collection of films, interviews and images.
+            <p className="relative z-10 mt-8 text-[clamp(22px,2.2vw,30px)] leading-[1.2] transition-[font-size] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">
+              <span className="block whitespace-nowrap sm:hidden">Ryan Gosling centered</span>
+              <span className="block whitespace-nowrap sm:hidden">collection of films,</span>
+              <span className="block whitespace-nowrap sm:hidden">interviews and images.</span>
+
+              <span className="hidden whitespace-nowrap sm:block lg:hidden">Ryan Gosling centered collection</span>
+              <span className="hidden whitespace-nowrap sm:block lg:hidden">of films, interviews and images.</span>
+
+              <span className="hidden whitespace-nowrap lg:block xl:hidden">Ryan Gosling centered collection of films,</span>
+              <span className="hidden whitespace-nowrap lg:block xl:hidden">interviews and images.</span>
+
+              <span className="hidden whitespace-nowrap xl:block">Ryan Gosling centered collection of films,</span>
+              <span className="hidden whitespace-nowrap xl:block">interviews and images.</span>
             </p>
           </div>
 
-          <div className="relative z-10 flex justify-center">
+          <div className="relative z-10 flex justify-center transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]">
             <HeroImageDeck />
           </div>
         </div>
