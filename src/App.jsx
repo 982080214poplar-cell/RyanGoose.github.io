@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
 import { Routes, Route, Link, useParams, useLocation } from "react-router-dom";
 import { films } from "./data/films";
 import { interviewEras } from "./data/interviews";
-import { gallery } from "./data/gallery";
+import gallery from "./data/gallery.json";
 import { snlSeasons } from "./data/snl";
 import { reasons } from "./data/reasons";
 
@@ -165,11 +165,37 @@ function SectionHeader({ icon, title, linkTo, linkText }) {
         <h3 className="text-[38px] font-bold uppercase tracking-[-0.03em]">{title}</h3>
       </div>
 
-      <Link to={linkTo} className="flex items-center gap-2 text-[18px] text-[#6faef2] hover:underline">
+      <Link
+        to={linkTo}
+        className="flex shrink-0 items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[15px] font-medium text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+      >
         {linkText} <ArrowRight size={18} />
       </Link>
     </div>
   );
+}
+
+function BackButton({ to, label }) {
+  return (
+    <Link
+      to={to}
+      aria-label={label}
+      title={label}
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#9cc9ff] text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+    >
+      <ArrowLeft size={22} strokeWidth={2.4} />
+    </Link>
+  );
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
 }
 
 function FilmCard({ film }) {
@@ -240,7 +266,12 @@ function HeroImageDeck() {
   const [activeCard, setActiveCard] = useState(null);
   const [hearts, setHearts] = useState([]);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1280);
+  const deckRef = useRef(null);
 
+  const cardWidth = 520;
+  const cardPeek = 72;
+  const activeCardLeft = 150;
+  const rightStackLeft = activeCardLeft + cardWidth + cardPeek;
   const mainImage = "/image/hothothot.JPG";
   const deckImages = gallery.slice(0, 5);
 
@@ -253,14 +284,8 @@ function HeroImageDeck() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const mainLeft = isDesktop
-    ? isOpen
-      ? 560
-      : 500
-    : 40;
-
   function handleClick(event) {
-    const rect = event.currentTarget.getBoundingClientRect();
+    const rect = (deckRef.current ?? event.currentTarget).getBoundingClientRect();
 
     const newHeart = {
       id: crypto.randomUUID(),
@@ -277,42 +302,61 @@ function HeroImageDeck() {
     }, 1200);
   }
 
+  const mainLeft = isDesktop ? (isOpen ? rightStackLeft + 18 : 500) : 40;
+
   function getCardLeft(index) {
-    if (isDesktop) {
-      if (!isOpen) return 520;
-      if (activeCard === null) return 260 + index * 36;
-      if (index === activeCard) return 250;
-      if (index < activeCard) return 90 + index * 52;
-      return 455 + (index - activeCard - 1) * 44;
+    if (!isDesktop) return 40;
+
+    if (!isOpen) return 520;
+
+    if (activeCard === null) {
+      return 230 + index * cardPeek;
     }
 
-    if (!isOpen) return 40;
-    if (activeCard === null) return 120 + index * 36;
-    if (index === activeCard) return 120;
-    if (index < activeCard) return 20 + index * 52;
-    return 325 + (index - activeCard - 1) * 44;
+    if (index === activeCard) {
+      return activeCardLeft;
+    }
+
+    if (index < activeCard) {
+      const leftStackStart = activeCardLeft - activeCard * cardPeek;
+      return leftStackStart + index * cardPeek;
+    }
+
+    return rightStackLeft + (index - activeCard - 1) * cardPeek;
+  }
+
+  function getCardWidth(index) {
+    if (!isOpen) return cardWidth;
+    if (activeCard === index) return cardWidth;
+    return cardWidth;
   }
 
   function getCardZ(index) {
-    if (activeCard === index) return 90;
-    if (activeCard !== null && index > activeCard) return 100 + index;
-    return 20 + index;
+    // 关键：不要让 activeCard 自动跑到最上面
+    // 保持后面的牌盖住前面的牌，才像真实叠牌
+    return 30 + index;
+  }
+
+  function getHitboxLeft(index) {
+    return getCardLeft(index);
   }
 
   function getHitboxWidth(index) {
-    if (activeCard === null) return 46;
-    if (index === activeCard) return 360;
-    return 46;
+    if (activeCard === index) return cardWidth;
+    return cardPeek;
   }
 
   if (!isDesktop) {
     return (
       <div
-        onClick={handleClick}
-        onDoubleClick={() => setIsOpen((current) => !current)}
+        ref={deckRef}
         className="relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible"
       >
-        <div className="rounded-[2.5rem] bg-[#9cc9ff] p-4 shadow-[0_20px_40px_rgba(59,42,26,0.14)]">
+        <div
+          onClick={handleClick}
+          onDoubleClick={() => setIsOpen((current) => !current)}
+          className="rounded-[2.5rem] bg-[#9cc9ff] p-4 shadow-[0_20px_40px_rgba(59,42,26,0.14)]"
+        >
           <div className="overflow-hidden rounded-[2rem]">
             <img
               src={mainImage}
@@ -323,23 +367,31 @@ function HeroImageDeck() {
         </div>
 
         <div
-          className={`mt-6 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`mt-6 overflow-hidden transition-all duration-500 ${
             isOpen ? "max-h-[290px] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <div className="flex gap-4 overflow-x-auto pb-4">
             {deckImages.map((item) => (
-              <Link
+              <div
                 key={item.slug}
-                to={`/gallery/${item.slug}`}
-                className="shrink-0 rounded-[1.8rem] bg-[#9cc9ff] p-3 shadow-[0_12px_24px_rgba(59,42,26,0.12)]"
+                tabIndex={0}
+                onClick={handleClick}
+                className="group relative shrink-0 rounded-[1.8rem] bg-[#9cc9ff] p-3 shadow-[0_12px_24px_rgba(59,42,26,0.12)] transition hover:-translate-y-1 focus:outline-none"
               >
                 <img
                   src={item.img}
                   alt={item.title}
                   className="h-[240px] w-[170px] rounded-[1.4rem] object-cover"
                 />
-              </Link>
+                <Link
+                  to={`/gallery/${item.slug}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[13px] font-medium text-[#3b2a1a] opacity-0 shadow-[0_8px_18px_rgba(59,42,26,0.18)] transition duration-300 hover:bg-[#fff1b5] group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+                >
+                  View
+                </Link>
+              </div>
             ))}
           </div>
         </div>
@@ -348,10 +400,7 @@ function HeroImageDeck() {
           <span
             key={heart.id}
             className="pointer-events-none absolute z-[300] text-[34px] text-[#9cc9ff] animate-[heartFloat_1200ms_ease-out_forwards]"
-            style={{
-              left: heart.x,
-              top: heart.y,
-            }}
+            style={{ left: heart.x, top: heart.y }}
           >
             ♥
           </span>
@@ -363,11 +412,7 @@ function HeroImageDeck() {
   return (
     <div className="relative h-[650px] w-full max-w-[1160px] overflow-visible">
       <div
-        onClick={handleClick}
-        onDoubleClick={() => {
-          setIsOpen((current) => !current);
-          setActiveCard(null);
-        }}
+        ref={deckRef}
         className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[55%] cursor-pointer select-none"
       >
         {deckImages.map((item, index) => {
@@ -376,9 +421,10 @@ function HeroImageDeck() {
           return (
             <div
               key={item.slug}
-              className="absolute top-[28px] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute top-[28px] h-[620px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 left: `${getCardLeft(index)}px`,
+                width: `${getCardWidth(index)}px`,
                 opacity: isOpen ? 1 : 0,
                 zIndex: getCardZ(index),
                 pointerEvents: "none",
@@ -402,6 +448,7 @@ function HeroImageDeck() {
               key={`hitbox-${item.slug}`}
               type="button"
               onClick={(event) => {
+                handleClick(event);
                 event.stopPropagation();
                 setActiveCard((current) =>
                   current === index ? null : index
@@ -409,7 +456,7 @@ function HeroImageDeck() {
               }}
               className="absolute top-[28px] h-[620px] rounded-[3rem] transition-transform duration-300 hover:-translate-y-2"
               style={{
-                left: `${getCardLeft(index)}px`,
+                left: `${getHitboxLeft(index)}px`,
                 width: `${getHitboxWidth(index)}px`,
                 zIndex: 260 + index,
                 background: "transparent",
@@ -418,11 +465,36 @@ function HeroImageDeck() {
             />
           ))}
 
+        {isOpen && activeCard !== null && deckImages[activeCard] && (
+          <div
+            className="group absolute top-[28px] h-[620px] w-[520px] rounded-[3rem]"
+            onClick={(event) => {
+              handleClick(event);
+              event.stopPropagation();
+            }}
+            style={{
+              left: `${getCardLeft(activeCard)}px`,
+              zIndex: 280,
+            }}
+          >
+            <Link
+              to={`/gallery/${deckImages[activeCard].slug}`}
+              onClick={(event) => event.stopPropagation()}
+              className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-[#9cc9ff] px-5 py-3 text-[14px] font-medium text-[#3b2a1a] opacity-0 shadow-[0_10px_22px_rgba(59,42,26,0.18)] transition duration-300 group-hover:pointer-events-auto group-hover:opacity-100 hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+            >
+              View
+            </Link>
+          </div>
+        )}
+
         <div
           className="absolute top-[28px] z-[180] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{
-            left: `${mainLeft}px`,
+          onClick={handleClick}
+          onDoubleClick={() => {
+            setIsOpen((current) => !current);
+            setActiveCard(null);
           }}
+          style={{ left: `${mainLeft}px` }}
         >
           <div className="h-full overflow-hidden rounded-[2.5rem]">
             <img
@@ -445,10 +517,7 @@ function HeroImageDeck() {
           <span
             key={heart.id}
             className="pointer-events-none absolute z-[300] text-[34px] text-[#9cc9ff] animate-[heartFloat_1200ms_ease-out_forwards]"
-            style={{
-              left: heart.x,
-              top: heart.y,
-            }}
+            style={{ left: heart.x, top: heart.y }}
           >
             ♥
           </span>
@@ -549,7 +618,8 @@ function FilmographyPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <h2 className="mb-8 text-[54px] font-bold uppercase">Filmography</h2>
+        <BackButton to="/" label="Back to Home" />
+        <h2 className="mb-8 mt-8 text-[54px] font-bold uppercase">Filmography</h2>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {films.map((film) => (
             <FilmCard key={film.slug} film={film} />
@@ -577,9 +647,7 @@ function FilmDetailPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to="/filmography" className="text-[#6faef2] hover:underline">
-          ← Back to Filmography
-        </Link>
+        <BackButton to="/filmography" label="Back to Filmography" />
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <img src={film.img} alt={film.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
@@ -600,7 +668,8 @@ function InterviewsPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <h2 className="mb-4 text-[54px] font-bold uppercase">Interviews</h2>
+        <BackButton to="/" label="Back to Home" />
+        <h2 className="mb-4 mt-8 text-[54px] font-bold uppercase">Interviews</h2>
         <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
           Interviews are organised by film era, so that each group reflects a distinct phase in Ryan Gosling’s screen image, publicity, and performance style.
         </p>
@@ -615,7 +684,10 @@ function InterviewsPage() {
                   <p className="mt-3 max-w-3xl text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
                 </div>
 
-                <Link to={`/interviews/${era.slug}`} className="shrink-0 text-[18px] text-[#6faef2] hover:underline">
+                <Link
+                  to={`/interviews/${era.slug}`}
+                  className="shrink-0 rounded-full bg-[#9cc9ff] px-4 py-2 text-[15px] font-medium text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+                >
                   View era
                 </Link>
               </div>
@@ -650,9 +722,7 @@ function InterviewEraPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to="/interviews" className="text-[#6faef2] hover:underline">
-          ← Back to Interviews
-        </Link>
+        <BackButton to="/interviews" label="Back to Interviews" />
 
         <div className="mt-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
@@ -692,9 +762,7 @@ function InterviewDetailPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to={`/interviews/${era.slug}`} className="text-[#6faef2] hover:underline">
-          ← Back to {era.era}
-        </Link>
+        <BackButton to={`/interviews/${era.slug}`} label={`Back to ${era.era}`} />
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
           <img
@@ -729,7 +797,8 @@ function GalleryPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <h2 className="mb-4 text-[54px] font-bold uppercase">Gallery</h2>
+        <BackButton to="/" label="Back to Home" />
+        <h2 className="mb-4 mt-8 text-[54px] font-bold uppercase">Gallery</h2>
         <p className="mb-8 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
           Browse archive images by date, or filter the gallery by year.
         </p>
@@ -784,9 +853,7 @@ function GalleryDetailPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to="/gallery" className="text-[#6faef2] hover:underline">
-          ← Back to Gallery
-        </Link>
+        <BackButton to="/gallery" label="Back to Gallery" />
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_0.9fr]">
           <img src={item.img} alt={item.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
@@ -808,7 +875,8 @@ function ReasonsPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <h2 className="mb-4 text-[54px] font-bold uppercase">
+        <BackButton to="/" label="Back to Home" />
+        <h2 className="mb-4 mt-8 text-[54px] font-bold uppercase">
           100 Reasons to Love Ryan Gosling
         </h2>
 
@@ -859,9 +927,7 @@ function ReasonDetailPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to="/100-reasons" className="text-[#6faef2] hover:underline">
-          ← Back to 100 Reasons
-        </Link>
+        <BackButton to="/100-reasons" label="Back to 100 Reasons" />
 
         <div className="mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
@@ -885,7 +951,8 @@ function SNLPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <div className="mb-8 flex items-center gap-3">
+        <BackButton to="/" label="Back to Home" />
+        <div className="mb-8 mt-8 flex items-center gap-3">
           <Tv className="text-[#6faef2]" />
           <h2 className="text-[54px] font-bold uppercase">Saturday Night Live</h2>
         </div>
@@ -930,9 +997,7 @@ function SNLSeasonPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to="/saturday-night-live" className="text-[#6faef2] hover:underline">
-          ← Back to Saturday Night Live
-        </Link>
+        <BackButton to="/saturday-night-live" label="Back to Saturday Night Live" />
 
         <div className="mt-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
@@ -983,9 +1048,7 @@ function SNLEpisodePage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to={`/saturday-night-live/${season.slug}`} className="text-[#6faef2] hover:underline">
-          ← Back to {season.season}
-        </Link>
+        <BackButton to={`/saturday-night-live/${season.slug}`} label={`Back to ${season.season}`} />
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
           <img
@@ -1016,26 +1079,29 @@ function SNLEpisodePage() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
 
-      <Route path="/100-reasons" element={<ReasonsPage />} />
-      <Route path="/100-reasons/:reasonSlug" element={<ReasonDetailPage />} />
+        <Route path="/100-reasons" element={<ReasonsPage />} />
+        <Route path="/100-reasons/:reasonSlug" element={<ReasonDetailPage />} />
 
-      <Route path="/filmography" element={<FilmographyPage />} />
-      <Route path="/filmography/:slug" element={<FilmDetailPage />} />
+        <Route path="/filmography" element={<FilmographyPage />} />
+        <Route path="/filmography/:slug" element={<FilmDetailPage />} />
 
-      <Route path="/interviews" element={<InterviewsPage />} />
-      <Route path="/interviews/:eraSlug" element={<InterviewEraPage />} />
-      <Route path="/interviews/:eraSlug/:interviewSlug" element={<InterviewDetailPage />} />
+        <Route path="/interviews" element={<InterviewsPage />} />
+        <Route path="/interviews/:eraSlug" element={<InterviewEraPage />} />
+        <Route path="/interviews/:eraSlug/:interviewSlug" element={<InterviewDetailPage />} />
 
-      <Route path="/gallery" element={<GalleryPage />} />
-      <Route path="/gallery/year/:year" element={<GalleryPage />} />
-      <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/gallery/year/:year" element={<GalleryPage />} />
+        <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
 
-      <Route path="/saturday-night-live" element={<SNLPage />} />
-      <Route path="/saturday-night-live/:seasonSlug" element={<SNLSeasonPage />} />
-      <Route path="/saturday-night-live/:seasonSlug/:episodeSlug" element={<SNLEpisodePage />} />
-    </Routes>
+        <Route path="/saturday-night-live" element={<SNLPage />} />
+        <Route path="/saturday-night-live/:seasonSlug" element={<SNLSeasonPage />} />
+        <Route path="/saturday-night-live/:seasonSlug/:episodeSlug" element={<SNLEpisodePage />} />
+      </Routes>
+    </>
   );
 }
