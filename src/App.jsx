@@ -14,11 +14,14 @@ function NavLinkItem({ to, children }) {
   return (
     <Link
       to={to}
-      className={`transition ${
-        isActive ? "text-[#3b2a1a] underline underline-offset-8" : "hover:text-[#3b2a1a]"
-      }`}
+      className="group/nav relative inline-flex pb-2 uppercase tracking-[0.08em] transition hover:text-[#3b2a1a]"
     >
       {children}
+      <span
+        className={`absolute bottom-0 left-1/2 h-[4px] -translate-x-1/2 rounded-full bg-[#6faef2] transition-all duration-300 ease-out ${
+          isActive ? "w-full" : "w-0 group-hover/nav:w-full"
+        }`}
+      />
     </Link>
   );
 }
@@ -51,7 +54,7 @@ function Layout({ children }) {
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="rounded-full bg-[#9cc9ff] p-3 shadow md:hidden"
+            className="rounded-full bg-transparent p-3 text-[#3b2a1a] transition hover:text-[#6faef2] md:hidden"
             aria-label="Open navigation menu"
           >
             <Menu size={22} />
@@ -76,9 +79,10 @@ function Layout({ children }) {
 
             <Link
               to="/saturday-night-live"
-              className="inline-block text-[18px] font-medium hover:underline"
+              className="group/nav relative inline-flex pb-2 text-[18px] font-medium uppercase tracking-[0.08em] transition hover:text-[#3b2a1a]"
             >
               Saturday Night Live
+              <span className="absolute bottom-0 left-1/2 h-[4px] w-0 -translate-x-1/2 rounded-full bg-[#6faef2] transition-all duration-300 ease-out group-hover/nav:w-full" />
             </Link>
           </div>
         </div>
@@ -112,7 +116,7 @@ function Layout({ children }) {
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="rounded-full bg-[#9cc9ff] p-2"
+            className="rounded-full bg-transparent p-2 text-[#3b2a1a] transition hover:text-[#6faef2]"
             aria-label="Close navigation menu"
           >
             <X size={20} />
@@ -120,16 +124,16 @@ function Layout({ children }) {
         </div>
 
         <nav className="flex flex-col gap-5 text-[22px] font-medium">
-          <Link to="/" onClick={() => setIsSidebarOpen(false)}>
+          <Link to="/" onClick={() => setIsSidebarOpen(false)} className="transition hover:text-[#6faef2]">
             Home
           </Link>
-          <Link to="/filmography" onClick={() => setIsSidebarOpen(false)}>
+          <Link to="/filmography" onClick={() => setIsSidebarOpen(false)} className="transition hover:text-[#6faef2]">
             Filmography
           </Link>
-          <Link to="/interviews" onClick={() => setIsSidebarOpen(false)}>
+          <Link to="/interviews" onClick={() => setIsSidebarOpen(false)} className="transition hover:text-[#6faef2]">
             Interviews
           </Link>
-          <Link to="/gallery" onClick={() => setIsSidebarOpen(false)}>
+          <Link to="/gallery" onClick={() => setIsSidebarOpen(false)} className="transition hover:text-[#6faef2]">
             Gallery
           </Link>
 
@@ -142,6 +146,7 @@ function Layout({ children }) {
           <Link
             to="/saturday-night-live"
             onClick={() => setIsSidebarOpen(false)}
+            className="transition hover:text-[#6faef2]"
           >
             Saturday Night Live
           </Link>
@@ -413,8 +418,36 @@ function HeroImageDeck() {
     <div className="relative h-[650px] w-full max-w-[1160px] overflow-visible">
       <div
         ref={deckRef}
-        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[59%] cursor-pointer select-none"
+        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[59%] cursor-pointer select-none xl:z-0"
       >
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute top-[120px] z-0 h-[300px] overflow-visible transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{
+            left: "-620px",
+            width: `${mainLeft + cardWidth + 600}px`,
+          }}
+          viewBox="0 0 1180 300"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M 8 176 C 178 82 302 78 430 146 C 566 218 682 224 842 132 C 966 60 1072 48 1172 88"
+            fill="none"
+            stroke="#9cc9ff"
+            strokeLinecap="round"
+            strokeWidth="5"
+            opacity="0.74"
+          />
+          <path
+            d="M 8 204 C 184 112 306 108 438 174 C 574 244 700 252 856 164 C 978 94 1080 84 1172 120"
+            fill="none"
+            stroke="#9cc9ff"
+            strokeLinecap="round"
+            strokeWidth="5"
+            opacity="0.6"
+          />
+        </svg>
+
         {deckImages.map((item, index) => {
           const isActive = activeCard === index;
 
@@ -536,26 +569,77 @@ function HomePage() {
     <Layout>
       <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 md:px-10">
         <div className="grid grid-cols-1 items-center gap-12 xl:grid-cols-[1fr_0.95fr]">
-          <div className="relative z-10">
-            <div className="mb-7 inline-flex items-center gap-2 text-[16px] font-medium uppercase tracking-[0.08em] text-[#6faef2]">
+          <div className="relative z-30">
+            <svg
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-24 top-[42px] z-0 h-[190px] w-[calc(100vw+10rem)] overflow-visible text-[#9cc9ff] xl:hidden"
+              viewBox="0 0 640 190"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M 0 74 C 96 26 178 28 252 74 C 340 128 438 126 640 62"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="3.5"
+                opacity="0.62"
+              />
+              <path
+                d="M 0 104 C 102 56 186 58 262 104 C 352 158 452 154 640 92"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="3.5"
+                opacity="0.48"
+              />
+            </svg>
+
+            <svg
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-4 top-[138px] z-20 h-10 w-10 text-[#9cc9ff] sm:-left-5 sm:top-[135px] sm:h-12 sm:w-12 md:-left-8 md:top-[190px] md:h-16 md:w-16 xl:-left-9 xl:top-[190px]"
+              viewBox="0 0 80 80"
+            >
+              <g fill="currentColor">
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(45 40 40)" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(90 40 40)" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(135 40 40)" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(180 40 40)" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(225 40 40)" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(270 40 40)" />
+                <path d="M 36.5 40 L 39.25 8 L 40.75 8 L 43.5 40 Z" transform="rotate(315 40 40)" />
+                <circle cx="40" cy="40" r="5.5" />
+              </g>
+            </svg>
+
+            <div className="relative z-10 mb-7 inline-flex items-center gap-2 text-[16px] font-medium uppercase tracking-[0.08em] text-[#6faef2]">
               <Sparkles size={16} />
               Unofficial Fan Archive
             </div>
 
             <Link
               to="/100-reasons"
-              className="block max-w-xl text-[56px] font-bold uppercase leading-[0.9] tracking-[-0.04em] transition hover:text-[#6faef2] md:text-[88px]"
+              className="title-reveal relative z-10 block max-w-xl text-[56px] font-bold uppercase leading-[0.9] tracking-[-0.04em] md:text-[88px]"
             >
-              100 reasons
-              <br />
-              to love
-              <br />
-              Ryan Gosling
+              <span className="block">
+                100 reasons
+                <br />
+                to love
+                <br />
+                Ryan Gosling
+              </span>
+              <span aria-hidden="true" className="title-reveal-blue absolute inset-0 block text-[#6faef2]">
+                100 reasons
+                <br />
+                to love
+                <br />
+                Ryan Gosling
+              </span>
             </Link>
 
-            <div className="mt-7 h-[4px] w-40 rounded-full bg-[#6faef2]" />
+            <div className="relative z-10 mt-7 h-[4px] w-40 rounded-full bg-[#6faef2]" />
 
-            <p className="mt-8 max-w-xl text-[24px] leading-[1.18] md:text-[30px]">
+            <p className="relative z-10 mt-8 max-w-xl text-[24px] leading-[1.18] md:text-[30px]">
               Ryan Gosling centered collection of films, interviews and images.
             </p>
           </div>
