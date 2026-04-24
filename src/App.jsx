@@ -13,7 +13,7 @@ function NavLinkItem({ to, children }) {
     <Link
       to={to}
       className={`transition ${
-        isActive ? "text-[#6faef2] underline underline-offset-8" : "hover:text-[#6faef2]"
+        isActive ? "text-[#3b2a1a] underline underline-offset-8" : "hover:text-[#3b2a1a]"
       }`}
     >
       {children}
@@ -21,64 +21,55 @@ function NavLinkItem({ to, children }) {
   );
 }
 
-function ScribbleTop() {
-  return (
-    <svg
-      className="absolute left-[36%] top-20 opacity-70"
-      width="230"
-      height="120"
-      viewBox="0 0 230 120"
-      fill="none"
-    >
-      <path d="M18 92 C 70 54, 126 18, 214 8" stroke="#9cc9ff" strokeWidth="5" strokeLinecap="round" />
-      <path d="M68 104 C 110 66, 148 44, 214 24" stroke="#9cc9ff" strokeWidth="5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ScribbleBottom() {
-  return (
-    <svg
-      className="absolute right-6 bottom-[-16px] opacity-60"
-      width="210"
-      height="120"
-      viewBox="0 0 210 120"
-      fill="none"
-    >
-      <path d="M10 34 C 76 20, 136 66, 196 108" stroke="#9cc9ff" strokeWidth="5" strokeLinecap="round" />
-      <path d="M32 18 C 102 10, 148 54, 204 92" stroke="#9cc9ff" strokeWidth="5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Starburst({ className = "" }) {
-  return (
-    <svg className={className} width="78" height="78" viewBox="0 0 78 78" fill="none">
-      <path d="M39 4V74M4 39H74M13 13L65 65M65 13L13 65" stroke="#9cc9ff" strokeWidth="4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function Layout({ children }) {
   return (
     <div className="min-h-screen bg-[#f6d97a] text-[#3b2a1a]">
-      <header className="px-10 py-7">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <Link to="/" className="text-[22px] font-semibold tracking-[0.14em]">
-            RYAN GOSLING ARCHIVE
+      
+      <header className="group relative z-40 bg-[#f6d97a] px-10 py-7">
+        
+        {/* 上半部分（固定高度） */}
+        <div className="mx-auto flex max-w-7xl items-start justify-between gap-10">
+          <Link
+            to="/"
+            className="text-[22px] font-semibold uppercase tracking-[0.14em] leading-[1.5]"
+          >
+            RYAN GOSLING
+            <br />
+            ARCHIVE
           </Link>
 
-          <nav className="group relative flex gap-8 text-[17px]">
+          <nav className="flex gap-8 text-[17px]">
             <NavLinkItem to="/">Home</NavLinkItem>
             <NavLinkItem to="/filmography">Filmography</NavLinkItem>
             <NavLinkItem to="/interviews">Interviews</NavLinkItem>
             <NavLinkItem to="/gallery">Gallery</NavLinkItem>
-
-            <div className="pointer-events-none absolute right-0 top-8 z-30 w-72 translate-y-2 rounded-[1.25rem] bg-[#f8e6a2] p-3 opacity-0 shadow-[0_16px_30px_rgba(59,42,26,0.16)] transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
-              <p className="px-3 pb-2 text-[13px] uppercase tracking-[0.1em] text-[#6b5948]">More archive sections</p>
-              <NavLinkItem to="/saturday-night-live">Saturday Night Live</NavLinkItem>
-            </div>
           </nav>
+        </div>
+
+        {/* 下半部分（延伸区域） */}
+        <div
+          className="
+            mx-auto max-w-7xl
+            overflow-hidden
+            max-h-0
+            transition-all duration-300 ease-in-out
+            group-hover:max-h-40
+          "
+        >
+          <div className="mt-6 border-t border-[#3b2a1a]/20 pt-5">
+            
+            <p className="mb-3 text-[12px] uppercase tracking-[0.16em] text-[#3b2a1a]/60">
+              More archive sections
+            </p>
+
+            <Link
+              to="/saturday-night-live"
+              className="inline-block text-[18px] font-medium hover:underline"
+            >
+              Saturday Night Live
+            </Link>
+
+          </div>
         </div>
       </header>
 
@@ -155,16 +146,16 @@ function InterviewItemCard({ eraSlug, item }) {
 
 function GalleryCard({ item }) {
   return (
-    <Link to={`/gallery/${item.slug}`} className="group block transition hover:-translate-y-1">
+    <Link to={`/gallery/${item.slug}`} className="transition hover:-translate-y-1">
       <img
         src={item.img}
         alt={item.title}
         className="h-48 w-full rounded-[1.1rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
       />
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <h4 className="text-[17px] font-bold leading-tight group-hover:text-[#6faef2]">{item.title}</h4>
-        <span className="rounded-full bg-[#f8e6a2] px-3 py-1 text-[13px] text-[#6b5948]">{item.date}</span>
-      </div>
+      <p className="mt-3 text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
+        {item.date}
+      </p>
+      <h4 className="mt-1 text-[18px] font-bold">{item.title}</h4>
     </Link>
   );
 }
@@ -172,11 +163,7 @@ function GalleryCard({ item }) {
 function HomePage() {
   return (
     <Layout>
-      <section id="home" className="relative mx-auto max-w-7xl px-10 pb-12 pt-6">
-        <ScribbleTop />
-        <Starburst className="absolute left-[-4px] top-[260px] opacity-75" />
-        <Starburst className="absolute right-8 top-[150px] scale-75 opacity-75" />
-
+      <section className="relative mx-auto max-w-7xl px-10 pb-12 pt-6">
         <div className="grid items-center gap-14 lg:grid-cols-[1fr_0.95fr]">
           <div className="relative z-10">
             <div className="mb-7 inline-flex items-center gap-2 text-[16px] font-medium uppercase tracking-[0.08em] text-[#6faef2]">
@@ -231,12 +218,7 @@ function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-10 pb-12 pt-8">
-        <SectionHeader
-          icon={<Quote className="text-[#6faef2]" />}
-          title="Interviews"
-          linkTo="/interviews"
-          linkText="View all interviews"
-        />
+        <SectionHeader icon={<Quote className="text-[#6faef2]" />} title="Interviews" linkTo="/interviews" linkText="View all interviews" />
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {interviewEras.map((era) => (
             <EraCard key={era.slug} era={era} />
@@ -244,10 +226,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="relative mx-auto max-w-7xl px-10 pb-16 pt-8">
-        <ScribbleBottom />
-        <Starburst className="absolute left-[-10px] bottom-4 opacity-75" />
-
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-8">
         <SectionHeader icon={<Camera className="text-[#6faef2]" />} title="Gallery" linkTo="/gallery" linkText="View full gallery" />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
           {gallery.map((item) => (
@@ -434,165 +413,44 @@ function InterviewDetailPage() {
   );
 }
 
-function SnlSeasonCard({ season }) {
-  return (
-    <Link
-      to={`/saturday-night-live/${season.slug}`}
-      className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
-    >
-      <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
-      <h3 className="mt-2 text-[32px] font-bold uppercase leading-tight">{season.season}</h3>
-      <p className="mt-3 text-[18px] leading-[1.6] text-[#5a4631]">{season.description}</p>
-      <p className="mt-5 text-[16px] text-[#6b5948]">{season.episodes.length} episodes</p>
-    </Link>
-  );
-}
-
-function SnlEpisodeCard({ seasonSlug, episode }) {
-  return (
-    <Link
-      to={`/saturday-night-live/${seasonSlug}/${episode.slug}`}
-      className="overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
-    >
-      <img src={episode.image} alt={episode.title} className="h-52 w-full object-cover" />
-      <div className="p-6">
-        <p className="text-[15px] text-[#6b5948]">{episode.episode} · {episode.date}</p>
-        <h4 className="mt-2 text-[26px] font-bold leading-tight">{episode.title}</h4>
-        <p className="mt-3 text-[17px] text-[#5a4631]">Host: {episode.host}</p>
-      </div>
-    </Link>
-  );
-}
-
-function SaturdayNightLivePage() {
-  return (
-    <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <div className="mb-10 flex items-center gap-3">
-          <Tv className="text-[#6faef2]" />
-          <h2 className="text-[54px] font-bold uppercase">Saturday Night Live</h2>
-        </div>
-        <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
-          This section is organised by season first, then by individual episode, so you can keep sketches, clips, image references, and notes in a clear archive structure.
-        </p>
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {snlSeasons.map((season) => (
-            <SnlSeasonCard key={season.slug} season={season} />
-          ))}
-        </div>
-      </section>
-    </Layout>
-  );
-}
-
-function SnlSeasonPage() {
-  const { seasonSlug } = useParams();
-  const season = snlSeasons.find((item) => item.slug === seasonSlug);
-
-  if (!season) {
-    return (
-      <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
-          <p className="text-[22px]">SNL season not found.</p>
-        </section>
-      </Layout>
-    );
-  }
-
-  return (
-    <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to="/saturday-night-live" className="text-[#6faef2] hover:underline">
-          ← Back to Saturday Night Live
-        </Link>
-        <div className="mt-8">
-          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
-          <h2 className="mt-2 text-[54px] font-bold uppercase">{season.season}</h2>
-          <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">{season.description}</p>
-        </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {season.episodes.map((episode) => (
-            <SnlEpisodeCard key={episode.slug} seasonSlug={season.slug} episode={episode} />
-          ))}
-        </div>
-      </section>
-    </Layout>
-  );
-}
-
-function SnlEpisodePage() {
-  const { seasonSlug, episodeSlug } = useParams();
-  const season = snlSeasons.find((item) => item.slug === seasonSlug);
-  const episode = season?.episodes.find((item) => item.slug === episodeSlug);
-
-  if (!season || !episode) {
-    return (
-      <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
-          <p className="text-[22px]">SNL episode not found.</p>
-        </section>
-      </Layout>
-    );
-  }
-
-  return (
-    <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <Link to={`/saturday-night-live/${season.slug}`} className="text-[#6faef2] hover:underline">
-          ← Back to {season.season}
-        </Link>
-        <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-          <img src={episode.image} alt={episode.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
-          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
-            <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.season} · {episode.episode}</p>
-            <h2 className="mt-2 text-[44px] font-bold leading-tight">{episode.title}</h2>
-            <p className="mt-3 text-[18px] text-[#6b5948]">{episode.date}</p>
-            <div className="mt-8 space-y-2 text-[20px] text-[#5a4631]">
-              <p><span className="font-bold">Host:</span> {episode.host}</p>
-              <p><span className="font-bold">Musical guest:</span> {episode.musicalGuest}</p>
-            </div>
-            <p className="mt-8 text-[20px] leading-[1.7] text-[#5a4631]">{episode.summary}</p>
-          </div>
-        </div>
-      </section>
-    </Layout>
-  );
-}
-
 function GalleryPage() {
-  const { year = "all" } = useParams();
-  const availableYears = [...new Set(gallery.map((item) => item.year))].sort((a, b) => b.localeCompare(a));
-  const filteredGallery = year === "all" ? gallery : gallery.filter((item) => item.year === year);
+  const { year } = useParams();
+
+  const years = [...new Set(gallery.map((item) => item.year))].sort((a, b) => b.localeCompare(a));
+  const filteredGallery = year ? gallery.filter((item) => item.year === year) : gallery;
 
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <h2 className="text-[54px] font-bold uppercase">Gallery</h2>
-            <p className="mt-3 text-[20px] text-[#5a4631]">Browse archive images by time period.</p>
-          </div>
+        <h2 className="mb-4 text-[54px] font-bold uppercase">Gallery</h2>
+        <p className="mb-8 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+          Browse archive images by date, or filter the gallery by year.
+        </p>
 
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-10 flex flex-wrap gap-3">
+          <Link
+            to="/gallery"
+            className={`rounded-full px-5 py-2 text-[15px] font-medium ${
+              !year ? "bg-[#9cc9ff]" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]/70"
+            }`}
+          >
+            All
+          </Link>
+
+          {years.map((galleryYear) => (
             <Link
-              to="/gallery"
-              className={`rounded-full px-4 py-2 text-[15px] transition ${year === "all" ? "bg-[#6faef2] text-white" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]"}`}
+              key={galleryYear}
+              to={`/gallery/year/${galleryYear}`}
+              className={`rounded-full px-5 py-2 text-[15px] font-medium ${
+                year === galleryYear ? "bg-[#9cc9ff]" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]/70"
+              }`}
             >
-              All
+              {galleryYear}
             </Link>
-            {availableYears.map((galleryYear) => (
-              <Link
-                key={galleryYear}
-                to={`/gallery/year/${galleryYear}`}
-                className={`rounded-full px-4 py-2 text-[15px] transition ${year === galleryYear ? "bg-[#6faef2] text-white" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]"}`}
-              >
-                {galleryYear}
-              </Link>
-            ))}
-          </div>
+          ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
           {filteredGallery.map((item) => (
             <GalleryCard key={item.slug} item={item} />
           ))}
@@ -640,21 +498,158 @@ function GalleryDetailPage() {
   );
 }
 
+function SNLPage() {
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <div className="mb-8 flex items-center gap-3">
+          <Tv className="text-[#6faef2]" />
+          <h2 className="text-[54px] font-bold uppercase">Saturday Night Live</h2>
+        </div>
+
+        <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+          SNL archive entries are organised by season first, then divided into individual episodes.
+        </p>
+
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {snlSeasons.map((season) => (
+            <Link
+              key={season.slug}
+              to={`/saturday-night-live/${season.slug}`}
+              className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+            >
+              <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
+              <h3 className="mt-2 text-[32px] font-bold uppercase">{season.season}</h3>
+              <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">{season.description}</p>
+              <p className="mt-5 text-[16px] text-[#6b5948]">{season.episodes.length} episodes</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function SNLSeasonPage() {
+  const { seasonSlug } = useParams();
+  const season = snlSeasons.find((s) => s.slug === seasonSlug);
+
+  if (!season) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-10 py-20">
+          <p className="text-[22px]">Season not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <Link to="/saturday-night-live" className="text-[#6faef2] hover:underline">
+          ← Back to Saturday Night Live
+        </Link>
+
+        <div className="mt-8">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
+          <h2 className="mt-2 text-[54px] font-bold uppercase">{season.season}</h2>
+          <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+            {season.description}
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {season.episodes.map((episode) => (
+            <Link
+              key={episode.slug}
+              to={`/saturday-night-live/${season.slug}/${episode.slug}`}
+              className="overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+            >
+              <img src={episode.image} alt={episode.title} className="h-52 w-full object-cover" />
+              <div className="p-6">
+                <p className="text-[15px] text-[#6b5948]">
+                  {episode.episode} · {episode.date}
+                </p>
+                <h3 className="mt-2 text-[26px] font-bold leading-tight">{episode.title}</h3>
+                <p className="mt-3 text-[17px] text-[#5a4631]">Host: {episode.host}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function SNLEpisodePage() {
+  const { seasonSlug, episodeSlug } = useParams();
+  const season = snlSeasons.find((s) => s.slug === seasonSlug);
+  const episode = season?.episodes.find((e) => e.slug === episodeSlug);
+
+  if (!season || !episode) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-10 py-20">
+          <p className="text-[22px]">Episode not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <Link to={`/saturday-night-live/${season.slug}`} className="text-[#6faef2] hover:underline">
+          ← Back to {season.season}
+        </Link>
+
+        <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+          <img
+            src={episode.image}
+            alt={episode.title}
+            className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+          />
+
+          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+            <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">
+              {season.season} · {episode.episode}
+            </p>
+            <h2 className="mt-2 text-[44px] font-bold leading-tight">{episode.title}</h2>
+            <p className="mt-3 text-[18px] text-[#6b5948]">{episode.date}</p>
+
+            <div className="mt-8 space-y-2 text-[20px] leading-[1.6] text-[#5a4631]">
+              <p>Host: {episode.host}</p>
+              <p>Musical Guest: {episode.musicalGuest}</p>
+            </div>
+
+            <p className="mt-8 text-[20px] leading-[1.7] text-[#5a4631]">{episode.summary}</p>
+          </div>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+
       <Route path="/filmography" element={<FilmographyPage />} />
       <Route path="/filmography/:slug" element={<FilmDetailPage />} />
+
       <Route path="/interviews" element={<InterviewsPage />} />
       <Route path="/interviews/:eraSlug" element={<InterviewEraPage />} />
       <Route path="/interviews/:eraSlug/:interviewSlug" element={<InterviewDetailPage />} />
-      <Route path="/saturday-night-live" element={<SaturdayNightLivePage />} />
-      <Route path="/saturday-night-live/:seasonSlug" element={<SnlSeasonPage />} />
-      <Route path="/saturday-night-live/:seasonSlug/:episodeSlug" element={<SnlEpisodePage />} />
+
       <Route path="/gallery" element={<GalleryPage />} />
       <Route path="/gallery/year/:year" element={<GalleryPage />} />
       <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
+
+      <Route path="/saturday-night-live" element={<SNLPage />} />
+      <Route path="/saturday-night-live/:seasonSlug" element={<SNLSeasonPage />} />
+      <Route path="/saturday-night-live/:seasonSlug/:episodeSlug" element={<SNLEpisodePage />} />
     </Routes>
   );
 }
