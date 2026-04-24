@@ -1,8 +1,9 @@
-import { ArrowRight, Sparkles, Film, Quote, Camera, Star } from "lucide-react";
+import { ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv } from "lucide-react";
 import { Routes, Route, Link, useParams, useLocation } from "react-router-dom";
 import { films } from "./data/films";
 import { interviewEras } from "./data/interviews";
 import { gallery } from "./data/gallery";
+import { snlSeasons } from "./data/snl";
 
 function NavLinkItem({ to, children }) {
   const location = useLocation();
@@ -67,11 +68,16 @@ function Layout({ children }) {
             RYAN GOSLING ARCHIVE
           </Link>
 
-          <nav className="flex gap-8 text-[17px]">
+          <nav className="group relative flex gap-8 text-[17px]">
             <NavLinkItem to="/">Home</NavLinkItem>
             <NavLinkItem to="/filmography">Filmography</NavLinkItem>
             <NavLinkItem to="/interviews">Interviews</NavLinkItem>
             <NavLinkItem to="/gallery">Gallery</NavLinkItem>
+
+            <div className="pointer-events-none absolute right-0 top-8 z-30 w-72 translate-y-2 rounded-[1.25rem] bg-[#f8e6a2] p-3 opacity-0 shadow-[0_16px_30px_rgba(59,42,26,0.16)] transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+              <p className="px-3 pb-2 text-[13px] uppercase tracking-[0.1em] text-[#6b5948]">More archive sections</p>
+              <NavLinkItem to="/saturday-night-live">Saturday Night Live</NavLinkItem>
+            </div>
           </nav>
         </div>
       </header>
@@ -149,12 +155,16 @@ function InterviewItemCard({ eraSlug, item }) {
 
 function GalleryCard({ item }) {
   return (
-    <Link to={`/gallery/${item.slug}`} className="transition hover:-translate-y-1">
+    <Link to={`/gallery/${item.slug}`} className="group block transition hover:-translate-y-1">
       <img
         src={item.img}
         alt={item.title}
         className="h-48 w-full rounded-[1.1rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
       />
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <h4 className="text-[17px] font-bold leading-tight group-hover:text-[#6faef2]">{item.title}</h4>
+        <span className="rounded-full bg-[#f8e6a2] px-3 py-1 text-[13px] text-[#6b5948]">{item.date}</span>
+      </div>
     </Link>
   );
 }
@@ -424,13 +434,166 @@ function InterviewDetailPage() {
   );
 }
 
-function GalleryPage() {
+function SnlSeasonCard({ season }) {
+  return (
+    <Link
+      to={`/saturday-night-live/${season.slug}`}
+      className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+    >
+      <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
+      <h3 className="mt-2 text-[32px] font-bold uppercase leading-tight">{season.season}</h3>
+      <p className="mt-3 text-[18px] leading-[1.6] text-[#5a4631]">{season.description}</p>
+      <p className="mt-5 text-[16px] text-[#6b5948]">{season.episodes.length} episodes</p>
+    </Link>
+  );
+}
+
+function SnlEpisodeCard({ seasonSlug, episode }) {
+  return (
+    <Link
+      to={`/saturday-night-live/${seasonSlug}/${episode.slug}`}
+      className="overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+    >
+      <img src={episode.image} alt={episode.title} className="h-52 w-full object-cover" />
+      <div className="p-6">
+        <p className="text-[15px] text-[#6b5948]">{episode.episode} · {episode.date}</p>
+        <h4 className="mt-2 text-[26px] font-bold leading-tight">{episode.title}</h4>
+        <p className="mt-3 text-[17px] text-[#5a4631]">Host: {episode.host}</p>
+      </div>
+    </Link>
+  );
+}
+
+function SaturdayNightLivePage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <h2 className="mb-8 text-[54px] font-bold uppercase">Gallery</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-          {gallery.map((item) => (
+        <div className="mb-10 flex items-center gap-3">
+          <Tv className="text-[#6faef2]" />
+          <h2 className="text-[54px] font-bold uppercase">Saturday Night Live</h2>
+        </div>
+        <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
+          This section is organised by season first, then by individual episode, so you can keep sketches, clips, image references, and notes in a clear archive structure.
+        </p>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {snlSeasons.map((season) => (
+            <SnlSeasonCard key={season.slug} season={season} />
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function SnlSeasonPage() {
+  const { seasonSlug } = useParams();
+  const season = snlSeasons.find((item) => item.slug === seasonSlug);
+
+  if (!season) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-10 py-20">
+          <p className="text-[22px]">SNL season not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <Link to="/saturday-night-live" className="text-[#6faef2] hover:underline">
+          ← Back to Saturday Night Live
+        </Link>
+        <div className="mt-8">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
+          <h2 className="mt-2 text-[54px] font-bold uppercase">{season.season}</h2>
+          <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">{season.description}</p>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {season.episodes.map((episode) => (
+            <SnlEpisodeCard key={episode.slug} seasonSlug={season.slug} episode={episode} />
+          ))}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function SnlEpisodePage() {
+  const { seasonSlug, episodeSlug } = useParams();
+  const season = snlSeasons.find((item) => item.slug === seasonSlug);
+  const episode = season?.episodes.find((item) => item.slug === episodeSlug);
+
+  if (!season || !episode) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-10 py-20">
+          <p className="text-[22px]">SNL episode not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <Link to={`/saturday-night-live/${season.slug}`} className="text-[#6faef2] hover:underline">
+          ← Back to {season.season}
+        </Link>
+        <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+          <img src={episode.image} alt={episode.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
+          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+            <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.season} · {episode.episode}</p>
+            <h2 className="mt-2 text-[44px] font-bold leading-tight">{episode.title}</h2>
+            <p className="mt-3 text-[18px] text-[#6b5948]">{episode.date}</p>
+            <div className="mt-8 space-y-2 text-[20px] text-[#5a4631]">
+              <p><span className="font-bold">Host:</span> {episode.host}</p>
+              <p><span className="font-bold">Musical guest:</span> {episode.musicalGuest}</p>
+            </div>
+            <p className="mt-8 text-[20px] leading-[1.7] text-[#5a4631]">{episode.summary}</p>
+          </div>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function GalleryPage() {
+  const { year = "all" } = useParams();
+  const availableYears = [...new Set(gallery.map((item) => item.year))].sort((a, b) => b.localeCompare(a));
+  const filteredGallery = year === "all" ? gallery : gallery.filter((item) => item.year === year);
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <h2 className="text-[54px] font-bold uppercase">Gallery</h2>
+            <p className="mt-3 text-[20px] text-[#5a4631]">Browse archive images by time period.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/gallery"
+              className={`rounded-full px-4 py-2 text-[15px] transition ${year === "all" ? "bg-[#6faef2] text-white" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]"}`}
+            >
+              All
+            </Link>
+            {availableYears.map((galleryYear) => (
+              <Link
+                key={galleryYear}
+                to={`/gallery/year/${galleryYear}`}
+                className={`rounded-full px-4 py-2 text-[15px] transition ${year === galleryYear ? "bg-[#6faef2] text-white" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]"}`}
+              >
+                {galleryYear}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 xl:grid-cols-5">
+          {filteredGallery.map((item) => (
             <GalleryCard key={item.slug} item={item} />
           ))}
         </div>
@@ -464,7 +627,7 @@ function GalleryDetailPage() {
           <img src={item.img} alt={item.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
 
           <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
-            <p className="text-[16px] text-[#6b5948]">Gallery Entry</p>
+            <p className="text-[16px] text-[#6b5948]">Gallery Entry · {item.date}</p>
             <h2 className="mt-2 text-[44px] font-bold leading-tight">{item.title}</h2>
             <p className="mt-8 text-[22px] leading-[1.6] text-[#5a4631]">{item.caption}</p>
             <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[14px] font-medium">
@@ -486,7 +649,11 @@ export default function App() {
       <Route path="/interviews" element={<InterviewsPage />} />
       <Route path="/interviews/:eraSlug" element={<InterviewEraPage />} />
       <Route path="/interviews/:eraSlug/:interviewSlug" element={<InterviewDetailPage />} />
+      <Route path="/saturday-night-live" element={<SaturdayNightLivePage />} />
+      <Route path="/saturday-night-live/:seasonSlug" element={<SnlSeasonPage />} />
+      <Route path="/saturday-night-live/:seasonSlug/:episodeSlug" element={<SnlEpisodePage />} />
       <Route path="/gallery" element={<GalleryPage />} />
+      <Route path="/gallery/year/:year" element={<GalleryPage />} />
       <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
     </Routes>
   );
