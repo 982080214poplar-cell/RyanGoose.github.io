@@ -159,15 +159,15 @@ function Layout({ children }) {
 
 function SectionHeader({ icon, title, linkTo, linkText }) {
   return (
-    <div className="mb-7 flex items-center justify-between">
+    <div className="mb-7 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         {icon}
-        <h3 className="text-[38px] font-bold uppercase tracking-[-0.03em]">{title}</h3>
+        <h3 className="text-[30px] font-bold uppercase md:text-[38px]">{title}</h3>
       </div>
 
       <Link
         to={linkTo}
-        className="flex shrink-0 items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[15px] font-medium text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+        className="flex max-w-full shrink-0 items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[14px] font-medium text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5] sm:text-[15px]"
       >
         {linkText} <ArrowRight size={18} />
       </Link>
@@ -617,9 +617,9 @@ function HomePage() {
 function FilmographyPage() {
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/" label="Back to Home" />
-        <h2 className="mb-8 mt-8 text-[54px] font-bold uppercase">Filmography</h2>
+        <h2 className="mb-8 mt-8 text-[38px] font-bold uppercase md:text-[54px]">Filmography</h2>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {films.map((film) => (
             <FilmCard key={film.slug} film={film} />
@@ -637,7 +637,7 @@ function FilmDetailPage() {
   if (!film) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Film not found.</p>
         </section>
       </Layout>
@@ -646,7 +646,7 @@ function FilmDetailPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/filmography" label="Back to Filmography" />
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
@@ -654,9 +654,9 @@ function FilmDetailPage() {
 
           <div>
             <p className="text-[16px] text-[#6b5948]">{film.year}</p>
-            <h2 className="mt-2 text-[64px] font-bold uppercase leading-none">{film.title}</h2>
-            <p className="mt-4 text-[24px] text-[#6faef2]">{film.role}</p>
-            <p className="mt-8 max-w-2xl text-[22px] leading-[1.5]">{film.note}</p>
+            <h2 className="mt-2 text-[42px] font-bold uppercase leading-[1.02] md:text-[64px] md:leading-none">{film.title}</h2>
+            <p className="mt-4 text-[20px] text-[#6faef2] md:text-[24px]">{film.role}</p>
+            <p className="mt-8 max-w-2xl text-[19px] leading-[1.5] md:text-[22px]">{film.note}</p>
           </div>
         </div>
       </section>
