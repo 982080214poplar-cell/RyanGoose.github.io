@@ -413,7 +413,7 @@ function HeroImageDeck() {
     <div className="relative h-[650px] w-full max-w-[1160px] overflow-visible">
       <div
         ref={deckRef}
-        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[55%] cursor-pointer select-none"
+        className="absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top -translate-x-[59%] cursor-pointer select-none"
       >
         {deckImages.map((item, index) => {
           const isActive = activeCard === index;
