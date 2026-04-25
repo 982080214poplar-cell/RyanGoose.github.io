@@ -40,26 +40,483 @@ body {
     visibility 0ms linear 0ms;
 }
 
+.hero-wave-field {
+  height: 220px;
+  left: 0;
+  transition:
+    opacity 360ms ease,
+    top 1180ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1180ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 1180ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.hero-wave-field-top {
+  top: 300px;
+  transform: translateX(-120px);
+  width: calc(100% + 120px);
+}
+
+.hero-wave-field-bottom {
+  top: clamp(740px, 116vw, 900px);
+  transform: translateX(-150px);
+  width: min(calc(100% + 150px), 68vw);
+}
+
+.hero-wave-shield {
+  background: #f6d97a;
+  border-radius: 0;
+  left: var(--hero-shield-left, 0px);
+  width: var(--hero-shield-width, 0px);
+  z-index: 5;
+}
+
+.hero-wave-shield-top {
+  display: none;
+  height: var(--hero-shield-top-height, 0px);
+  top: var(--hero-shield-top-top, 0px);
+}
+
+.hero-wave-shield-bottom {
+  display: block;
+  height: var(--hero-shield-bottom-height, 0px);
+  top: var(--hero-shield-bottom-top, 0px);
+}
+
+.hero-main-card {
+  transform-origin: top left;
+  will-change: opacity, transform;
+}
+
+.hero-is-transitioning .hero-main-visual {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+.hero-is-transitioning .hero-wave-field,
+.hero-is-transitioning .hero-wave-shield {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+.hero-motion-overlay {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: fixed;
+  z-index: 2000;
+}
+
+.hero-motion-main,
+.hero-motion-wave,
+.hero-motion-shield {
+  overflow: visible;
+  position: fixed;
+  will-change: transform;
+}
+
+.hero-motion-main {
+  z-index: 3;
+}
+
+.hero-motion-wave {
+  z-index: 2;
+}
+
+.hero-motion-shield {
+  z-index: 2;
+}
+
+.hero-motion-main > .hero-main-visual {
+  height: 100% !important;
+  inset: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  position: relative !important;
+  top: 0 !important;
+  transition: none !important;
+  transform: none !important;
+  transform-origin: top left;
+  width: 100% !important;
+}
+
+.hero-motion-wave > .hero-wave-field,
+.hero-motion-shield > .hero-wave-shield {
+  height: 100% !important;
+  inset: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  position: relative !important;
+  top: 0 !important;
+  transition: none !important;
+  transform: none !important;
+  width: 100% !important;
+}
+
+.hero-motion-shield > .hero-wave-shield-fallback {
+  background: #f6d97a;
+  height: 100%;
+  width: 100%;
+}
+
+.hero-motion-main .hero-main-card,
+.hero-motion-main .hero-main-card * ,
+.hero-motion-wave .hero-wave-field *,
+.hero-motion-shield .hero-wave-shield * {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+.hero-motion-out-mobile .hero-motion-main {
+  animation: heroMotionMainToMobileOut 360ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-motion-out-mobile .hero-motion-wave {
+  transform-origin: left center;
+  animation: heroMotionWaveToMobileOut 360ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-motion-out-mobile .hero-motion-shield {
+  animation: heroMotionShieldToMobileOut 360ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-motion-in-mobile .hero-motion-main {
+  animation: heroMotionMainToMobileIn 760ms cubic-bezier(0.18, 0.92, 0.24, 1) both;
+}
+
+.hero-motion-in-mobile .hero-motion-wave {
+  transform-origin: left center;
+  animation: heroMotionWaveToMobileIn 760ms cubic-bezier(0.18, 0.92, 0.24, 1) both;
+}
+
+.hero-motion-in-mobile .hero-motion-shield {
+  animation: heroMotionShieldToMobileIn 760ms cubic-bezier(0.18, 0.92, 0.24, 1) both;
+}
+
+.hero-motion-out-desktop .hero-motion-main {
+  animation: heroMotionMainToDesktopOut 360ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-motion-out-desktop .hero-motion-wave {
+  transform-origin: left center;
+  animation: heroMotionWaveToDesktopOut 360ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-motion-out-desktop .hero-motion-shield {
+  animation: heroMotionShieldToDesktopOut 360ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-motion-in-desktop .hero-motion-main {
+  animation: heroMotionMainToDesktopIn 760ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.hero-motion-in-desktop .hero-motion-wave {
+  transform-origin: right center;
+  animation: heroMotionWaveToDesktopIn 760ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.hero-motion-in-desktop .hero-motion-shield {
+  animation: heroMotionShieldToDesktopIn 760ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+@keyframes heroMotionMainToMobileOut {
+  from {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(0, 0);
+  }
+
+  78% {
+    transform: translate(30vw, 7px);
+  }
+
+  to {
+    transform: translate(52vw, 10px);
+  }
+}
+
+@keyframes heroMotionWaveToMobileOut {
+  from {
+    transform: translate(0, 0) scaleX(1);
+  }
+
+  56% {
+    transform: translate(38vw, 8px) scaleX(1.9);
+  }
+
+  82% {
+    transform: translate(50vw, 10px) scaleX(1.55);
+  }
+
+  to {
+    transform: translate(56vw, 10px) scaleX(1.45);
+  }
+}
+
+@keyframes heroMotionShieldToMobileOut {
+  from {
+    translate: 0 0;
+  }
+
+  38% {
+    translate: 0 0;
+  }
+
+  72% {
+    translate: 28vw 6px;
+  }
+
+  to {
+    translate: 50vw 10px;
+  }
+}
+
+@keyframes heroMotionMainToMobileIn {
+  from {
+    transform: translate(-42vw, 118px);
+  }
+
+  20% {
+    transform: translate(-42vw, 118px);
+  }
+
+  76% {
+    transform: translate(-8vw, 24px);
+  }
+
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes heroMotionWaveToMobileIn {
+  from {
+    transform: translate(-64vw, 132px) scaleX(0.5);
+  }
+
+  62% {
+    transform: translate(-10vw, 22px) scaleX(0.9);
+  }
+
+  to {
+    transform: translate(0, 0) scaleX(1);
+  }
+}
+
+@keyframes heroMotionShieldToMobileIn {
+  from {
+    translate: -42vw 118px;
+  }
+
+  to {
+    translate: 0 0;
+  }
+}
+
+@keyframes heroMotionMainToDesktopOut {
+  from {
+    transform: translate(0, 0);
+  }
+
+  46% {
+    transform: translate(0, 0);
+  }
+
+  80% {
+    transform: translate(-32vw, -7px);
+  }
+
+  to {
+    transform: translate(-52vw, -10px);
+  }
+}
+
+@keyframes heroMotionWaveToDesktopOut {
+  from {
+    transform: translate(0, 0) scaleX(1);
+  }
+
+  56% {
+    transform: translate(-18vw, -3px) scaleX(0.42);
+  }
+
+  82% {
+    transform: translate(-28vw, -6px) scaleX(0.36);
+  }
+
+  to {
+    transform: translate(-34vw, -8px) scaleX(0.33);
+  }
+}
+
+@keyframes heroMotionShieldToDesktopOut {
+  from {
+    translate: 0 0;
+  }
+
+  40% {
+    translate: 0 0;
+  }
+
+  74% {
+    translate: -30vw -6px;
+  }
+
+  to {
+    translate: -50vw -10px;
+  }
+}
+
+@keyframes heroMotionMainToDesktopIn {
+  from {
+    transform: translate(42vw, -112px);
+  }
+
+  18% {
+    transform: translate(42vw, -112px);
+  }
+
+  74% {
+    transform: translate(8vw, -24px);
+  }
+
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes heroMotionWaveToDesktopIn {
+  from {
+    transform: translate(56vw, -122px) scaleX(0.46);
+  }
+
+  62% {
+    transform: translate(12vw, -22px) scaleX(0.88);
+  }
+
+  to {
+    transform: translate(0, 0) scaleX(1);
+  }
+}
+
+@keyframes heroMotionShieldToDesktopIn {
+  from {
+    translate: 42vw -112px;
+  }
+
+  to {
+    translate: 0 0;
+  }
+}
+
+
 .hero-deck-stage {
-  height: 520px;
+  height: clamp(520px, 32vw, 616px);
 }
 
 .hero-deck-inner {
-  transform: translateX(-59%) scale(calc(0.78 * var(--hero-deck-fade-scale, 1)));
+  --hero-deck-responsive-scale: 0.78;
+  transform: translateX(-59%) scale(calc(var(--hero-deck-responsive-scale) * var(--hero-deck-fade-scale, 1)));
+}
+
+@media (min-width: 1280px) {
+  .hero-deck-stage {
+    height: 574px;
+  }
+
+  .hero-deck-inner {
+    --hero-deck-responsive-scale: 0.82;
+  }
+}
+
+@media (min-width: 1536px) {
+  .hero-deck-stage {
+    height: 602px;
+  }
+
+  .hero-deck-inner {
+    --hero-deck-responsive-scale: 0.86;
+  }
+}
+
+@media (min-width: 1800px) {
+  .hero-deck-stage {
+    height: 616px;
+  }
+
+  .hero-deck-inner {
+    --hero-deck-responsive-scale: 0.88;
+  }
 }
 
 .hero-deck-fade {
   animation: heroDeckFadeIn 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@media (min-width: 1280px) {
-  .hero-deck-stage {
-    height: 650px;
-  }
+/* ===== Linked hero wave + main image mode switch ===== */
+.hero-home-grid {
+  transition:
+    gap 380ms cubic-bezier(0.22, 1, 0.36, 1),
+    grid-template-columns 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-  .hero-deck-inner {
-    transform: translateX(-59%) scale(var(--hero-deck-fade-scale, 1));
-  }
+/* Disable old one-step classes so they cannot mix with the new staged animation. */
+.hero-deck-layout-to-mobile,
+.hero-deck-layout-to-desktop {
+  animation: none !important;
+}
+
+.hero-layout-to-mobile-out .hero-home-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.95fr);
+  max-width: none;
+  min-width: var(--hero-freeze-width, 1024px);
+  width: var(--hero-freeze-width, 1024px);
+}
+
+.hero-layout-to-desktop-out .hero-home-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.hero-layout-to-mobile-out .hero-wave-field-top {
+  top: 330px;
+  transform: translateX(-120px);
+  width: calc(var(--hero-freeze-width, 1024px) - clamp(17rem, 20vw, 25rem));
+}
+
+.hero-layout-to-mobile-out .hero-wave-field-bottom,
+.hero-layout-to-desktop-out .hero-wave-field-top {
+  opacity: 0;
+}
+
+.hero-layout-to-desktop-out .hero-wave-field-bottom {
+  display: block;
+  top: clamp(740px, 116vw, 900px);
+  transform: translateX(-150px);
+  width: min(calc(100% + 150px), 68vw);
+}
+
+.hero-layout-to-mobile-out .hero-wave-field-top,
+.hero-deck-layout-to-mobile-out {
+  animation: heroLinkedToMobileOut 380ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-layout-to-mobile-in .hero-wave-field-bottom,
+.hero-deck-layout-to-mobile-in {
+  animation: heroLinkedToMobileIn 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-layout-to-desktop-out .hero-wave-field-bottom,
+.hero-deck-layout-to-desktop-out {
+  animation: heroLinkedToDesktopOut 380ms cubic-bezier(0.55, 0, 0.85, 0.35) both;
+}
+
+.hero-layout-to-desktop-in .hero-wave-field-top,
+.hero-deck-layout-to-desktop-in {
+  animation: heroLinkedToDesktopIn 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes heroDeckFadeIn {
@@ -71,6 +528,90 @@ body {
   to {
     --hero-deck-fade-scale: 1;
     opacity: 1;
+  }
+}
+
+/* 大屏 -> 小屏：弧线和主图一起向右推出 */
+@keyframes heroLinkedToMobileOut {
+  from {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+
+  58% {
+    opacity: 0.72;
+    translate: var(--hero-mobile-out-mid-x, 20vw) -36px;
+    scale: 0.985;
+  }
+
+  to {
+    opacity: 0.06;
+    translate: var(--hero-mobile-out-end-x, 42vw) 10px;
+    scale: 0.96;
+  }
+}
+
+/* 大屏 -> 小屏：切到小屏后，弧线和主图一起从左下拉回 */
+@keyframes heroLinkedToMobileIn {
+  from {
+    opacity: 0.06;
+    translate: -34vw 110px;
+    scale: 0.94;
+  }
+
+  62% {
+    opacity: 1;
+    translate: 6vw -16px;
+    scale: 1.01;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+/* 小屏 -> 大屏：弧线和主图一起向左推出 */
+@keyframes heroLinkedToDesktopOut {
+  from {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+
+  58% {
+    opacity: 0.72;
+    translate: -20vw 34px;
+    scale: 0.985;
+  }
+
+  to {
+    opacity: 0.06;
+    translate: -42vw -10px;
+    scale: 0.96;
+  }
+}
+
+/* 小屏 -> 大屏：切到大屏后，弧线和主图一起从右上拉回 */
+@keyframes heroLinkedToDesktopIn {
+  from {
+    opacity: 0.06;
+    translate: 36vw -112px;
+    scale: 0.94;
+  }
+
+  62% {
+    opacity: 1;
+    translate: -6vw 16px;
+    scale: 1.01;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
   }
 }
 
@@ -101,6 +642,34 @@ body {
       transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
       color 150ms ease,
       visibility 0ms linear 360ms;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-wave-field {
+    left: 0;
+  }
+
+  .hero-wave-field-top {
+    top: 330px;
+    transform: translateX(-120px);
+    width: calc(100% - clamp(17rem, 20vw, 25rem));
+  }
+
+  .hero-is-open .hero-wave-field-top {
+    width: calc(100% - clamp(6rem, 9vw, 12rem));
+  }
+
+  .hero-wave-field-bottom {
+    display: none;
+  }
+
+  .hero-wave-shield-top {
+    display: block;
+  }
+
+  .hero-wave-shield-bottom {
+    display: none;
   }
 }
 
@@ -171,6 +740,7 @@ body {
     padding 520ms cubic-bezier(0.22, 1, 0.36, 1),
     width 520ms cubic-bezier(0.22, 1, 0.36, 1),
     max-width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
     transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -179,6 +749,42 @@ body {
   display: block;
   min-height: 260px;
   object-position: center;
+}
+
+.detail-media.is-layout-to-mobile {
+  animation: detailImageToMobile 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.detail-media.is-layout-to-desktop {
+  animation: detailImageToDesktop 1100ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes detailImageToMobile {
+  0% {
+    transform: translateX(160px);
+  }
+
+  72% {
+    transform: translateX(-18px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes detailImageToDesktop {
+  0% {
+    transform: translateX(-160px);
+  }
+
+  72% {
+    transform: translateX(18px);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -222,22 +828,115 @@ body {
 }
 
 .detail-title {
-  max-width: 100%;
+  --detail-title-width: 100%;
+  max-width: min(100%, var(--detail-title-width));
   min-width: 0;
   overflow-wrap: normal;
-  text-wrap: balance;
+  text-wrap: wrap;
   transition:
     font-size 420ms cubic-bezier(0.22, 1, 0.36, 1),
     letter-spacing 420ms cubic-bezier(0.22, 1, 0.36, 1),
     line-height 420ms cubic-bezier(0.22, 1, 0.36, 1),
     max-width 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 800ms ease,
-    transform 800ms ease;
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+@media (min-width: 768px) {
+  .detail-title {
+    --detail-title-width: 560px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .detail-title {
+    --detail-title-width: 640px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .detail-title {
+    --detail-title-width: 720px;
+  }
 }
 
 .detail-title.is-settling {
-  opacity: 0.28;
-  transform: translateY(6px);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    font-size 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    letter-spacing 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    line-height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 90ms ease-out,
+    transform 90ms ease-out;
+}
+
+.detail-copy > *,
+.detail-panel > * {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.detail-copy:has(.detail-title.is-settling) > *,
+.detail-panel:has(.detail-title.is-settling) > * {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 90ms ease-out,
+    transform 90ms ease-out;
+}
+
+.card-title {
+  min-width: 0;
+  overflow-wrap: normal;
+  text-wrap: wrap;
+  transition:
+    color 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.archive-card:hover .card-title {
+  color: #6faef2;
+}
+
+.card-title.is-settling {
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    color 180ms ease,
+    opacity 90ms ease-out,
+    transform 90ms ease-out;
+}
+
+.archive-card .card-copy > *,
+.archive-card.card-copy > * {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+body:has(.card-title.is-settling) .archive-card .card-copy > *,
+body:has(.card-title.is-settling) .archive-card.card-copy > * {
+  opacity: 0;
+  transform: translateY(3px);
+  transition:
+    opacity 90ms ease-out,
+    transform 90ms ease-out;
+}
+
+.archive-layout-grid {
+  transition: height 680ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.archive-layout-grid-item {
+  transition:
+    height 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 680ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: height, transform, width;
 }
 
 .natural-title {

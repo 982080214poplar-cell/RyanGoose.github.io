@@ -8,6 +8,10 @@ import handcraftSections from "./data/handcraft.json";
 import snlSeasons from "./data/snl.json";
 import reasons from "./data/reasons.json";
 
+const HERO_WAVE_TOP_PATH =
+  "M 0 84 C 122 44 252 42 384 72 C 530 106 666 136 834 126 C 978 118 1088 90 1180 66";
+const HERO_WAVE_BOTTOM_PATH =
+  "M 0 122 C 128 86 258 84 392 112 C 538 144 676 174 844 166 C 986 158 1092 132 1180 108";
 function NavLinkItem({ to, children }) {
   const location = useLocation();
   const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
@@ -88,7 +92,7 @@ function Layout({ children }) {
             max-h-0
             transition-all duration-300 ease-in-out
             group-hover:max-h-40
-            md:block
+            min-[920px]:block
           "
         >
           <div className="mt-6 border-t border-[#3b2a1a]/20 pt-5">
@@ -111,14 +115,14 @@ function Layout({ children }) {
       {/* Mobile sidebar backdrop */}
       <div
         onClick={() => setIsSidebarOpen(false)}
-        className={`fixed inset-0 z-50 bg-black/30 transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-50 bg-black/30 transition-opacity duration-300 min-[920px]:hidden ${
           isSidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
 
       {/* Mobile sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full w-[78%] max-w-[320px] bg-[#f6d97a] px-6 py-7 shadow-2xl transition-transform duration-300 md:hidden ${
+        className={`fixed left-0 top-0 z-50 h-full w-[78%] max-w-[320px] bg-[#f6d97a] px-6 py-7 shadow-2xl transition-transform duration-300 min-[920px]:hidden ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -225,6 +229,44 @@ function BackButton({ to, label, icon }) {
         </span>
       )}
     </div>
+  );
+}
+
+function useDetailLayoutShift() {
+  const [layoutShift, setLayoutShift] = useState("");
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    let timeoutId;
+
+    const startShift = (event) => {
+      setLayoutShift(event.matches ? "to-desktop" : "to-mobile");
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => setLayoutShift(""), 1100);
+    };
+
+    mediaQuery.addEventListener("change", startShift);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      mediaQuery.removeEventListener("change", startShift);
+    };
+  }, []);
+
+  return layoutShift;
+}
+
+function DetailImage({ src, alt }) {
+  const layoutShift = useDetailLayoutShift();
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={`detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)] ${
+        layoutShift ? `is-layout-${layoutShift}` : ""
+      }`}
+    />
   );
 }
 
@@ -559,6 +601,7 @@ function PageTitle({ children, className = "" }) {
 function DetailTitle({ children, className = "" }) {
   const titleRef = useRef(null);
   const [isSettling, setIsSettling] = useState(false);
+  const titleWords = String(children).trim().split(/\s+/).filter(Boolean);
 
   useEffect(() => {
     const titleElement = titleRef.current;
@@ -566,17 +609,129 @@ function DetailTitle({ children, className = "" }) {
     if (!titleElement) return undefined;
 
     let timeoutId;
-    let previousHeight = titleElement.getBoundingClientRect().height;
+    let confirmTimeoutId;
+    const getLayoutSignature = () => {
+      const wordElements = Array.from(titleElement.querySelectorAll("[data-title-word]"));
 
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      const nextHeight = entry.contentRect.height;
+      if (!wordElements.length) return "";
 
-      if (Math.abs(nextHeight - previousHeight) < 1) return;
+      const lines = [];
 
-      previousHeight = nextHeight;
+      wordElements.forEach((wordElement) => {
+        const top = Math.round(wordElement.getBoundingClientRect().top);
+        const lastLine = lines[lines.length - 1];
+
+        if (lastLine && Math.abs(lastLine.top - top) <= 2) {
+          lastLine.words.push(wordElement.textContent);
+          return;
+        }
+
+        lines.push({ top, words: [wordElement.textContent] });
+      });
+
+      return lines.map((line) => line.words.join(" ")).join("|");
+    };
+
+    let previousSignature = getLayoutSignature();
+    const settleDelay = 220;
+    const confirmDelay = 110;
+
+    const startSettling = () => {
       setIsSettling(true);
       window.clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(() => setIsSettling(false), 800);
+      timeoutId = window.setTimeout(() => setIsSettling(false), settleDelay);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      const nextSignature = getLayoutSignature();
+
+      if (nextSignature === previousSignature) return;
+
+      window.clearTimeout(confirmTimeoutId);
+      confirmTimeoutId = window.setTimeout(() => {
+        const confirmedSignature = getLayoutSignature();
+
+        if (confirmedSignature === previousSignature || confirmedSignature !== nextSignature) return;
+
+        previousSignature = confirmedSignature;
+        startSettling();
+      }, confirmDelay);
+    });
+
+    resizeObserver.observe(titleElement);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(confirmTimeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [children]);
+
+  return (
+    <h2
+      ref={titleRef}
+      className={`detail-title natural-title mt-2 max-w-full text-[clamp(40px,6vw,64px)] font-bold leading-[1.05] ${isSettling ? "is-settling" : ""} ${className}`}
+    >
+      {titleWords.map((word, index) => (
+        <span data-title-word key={`${word}-${index}`}>
+          {index > 0 ? " " : ""}
+          {word}
+        </span>
+      ))}
+    </h2>
+  );
+}
+
+function CardTitle({ as: Tag = "h3", children, className = "" }) {
+  const titleRef = useRef(null);
+  const [isSettling, setIsSettling] = useState(false);
+  const titleWords = String(children).trim().split(/\s+/).filter(Boolean);
+
+  useEffect(() => {
+    const titleElement = titleRef.current;
+
+    if (!titleElement) return undefined;
+
+    let timeoutId;
+
+    const getLayoutSignature = () => {
+      const wordElements = Array.from(titleElement.querySelectorAll("[data-card-title-word]"));
+
+      if (!wordElements.length) return "";
+
+      const lines = [];
+
+      wordElements.forEach((wordElement) => {
+        const top = Math.round(wordElement.getBoundingClientRect().top);
+        const lastLine = lines[lines.length - 1];
+
+        if (lastLine && Math.abs(lastLine.top - top) <= 2) {
+          lastLine.words.push(wordElement.textContent);
+          return;
+        }
+
+        lines.push({ top, words: [wordElement.textContent] });
+      });
+
+      return lines.map((line) => line.words.join(" ")).join("|");
+    };
+
+    let previousSignature = getLayoutSignature();
+    const settleDelay = 180;
+
+    const startSettling = () => {
+      setIsSettling(true);
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => setIsSettling(false), settleDelay);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      const nextSignature = getLayoutSignature();
+
+      if (nextSignature === previousSignature) return;
+
+      previousSignature = nextSignature;
+      startSettling();
     });
 
     resizeObserver.observe(titleElement);
@@ -588,12 +743,17 @@ function DetailTitle({ children, className = "" }) {
   }, [children]);
 
   return (
-    <h2
+    <Tag
       ref={titleRef}
-      className={`detail-title natural-title mt-2 max-w-full text-[clamp(34px,9vw,64px)] font-bold leading-[1.05] ${isSettling ? "is-settling" : ""} ${className}`}
+      className={`card-title ${isSettling ? "is-settling" : ""} ${className}`}
     >
-      {children}
-    </h2>
+      {titleWords.map((word, index) => (
+        <span data-card-title-word key={`${word}-${index}`}>
+          {index > 0 ? " " : ""}
+          {word}
+        </span>
+      ))}
+    </Tag>
   );
 }
 
@@ -607,27 +767,127 @@ function ScrollToTop() {
   return null;
 }
 
+function ArchiveCardMotion() {
+  return null;
+}
+
 function FilmCard({ film }) {
   return (
     <Link
       to={`/filmography/${film.slug}`}
-      className="overflow-hidden rounded-[1.25rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+      className="archive-card flex h-full flex-col transition hover:-translate-y-1"
     >
-      <img src={film.img} alt={film.title} className="h-52 w-full object-cover" />
-      <div className="p-4">
-        <p className="text-[15px] text-[#6b5948]">{film.year}</p>
-        <StagedTitle
-          as="h4"
-          className="mt-1 text-[24px] font-bold uppercase leading-tight"
-          mobileLineCount={2}
-          tabletLineCount={2}
-          desktopLineCount={1}
-        >
+      <img
+        src={film.img}
+        alt={film.title}
+        className="aspect-video w-full shrink-0 rounded-[1.25rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+      />
+      <div className="card-copy flex min-h-0 min-w-0 flex-1 flex-col justify-start px-2 py-3">
+        <p className="text-[13px] uppercase leading-none tracking-[0.08em] text-[#6faef2]">{film.year}</p>
+        <CardTitle as="h4" className="mt-1 text-[clamp(16px,1.22vw,23px)] font-bold uppercase leading-[1.04]">
           {film.title}
-        </StagedTitle>
-        <p className="mt-2 text-[17px] text-[#6b5948]">{film.role}</p>
+        </CardTitle>
+        <p className="mt-1.5 text-[13px] uppercase leading-tight tracking-[0.08em] text-[#6b5948]">{film.role}</p>
       </div>
     </Link>
+  );
+}
+
+function ArchiveLayoutGrid({
+  aspectRatio = 1.42,
+  className = "",
+  columnRules = [
+    { min: 1100, columns: 4 },
+    { min: 760, columns: 3 },
+    { min: 520, columns: 2 },
+    { min: 0, columns: 1 },
+  ],
+  gap = 16,
+  getKey = (item) => item.slug,
+  items,
+  renderItem,
+}) {
+  const gridRef = useRef(null);
+  const columnRulesKey = JSON.stringify(columnRules);
+  const [layout, setLayout] = useState({
+    cardHeight: 0,
+    cardWidth: 0,
+    columns: 1,
+    gap,
+    height: 0,
+  });
+
+  useLayoutEffect(() => {
+    const gridElement = gridRef.current;
+
+    if (!gridElement) return undefined;
+
+    function getColumnCount(width) {
+      const sortedRules = [...columnRules].sort((a, b) => b.min - a.min);
+      return sortedRules.find((rule) => width >= rule.min)?.columns ?? 1;
+    }
+
+    function updateLayout() {
+      const width = gridElement.getBoundingClientRect().width;
+      const columns = getColumnCount(width);
+      const cardWidth = (width - gap * (columns - 1)) / columns;
+      const cardHeight = cardWidth / aspectRatio;
+      const rows = Math.ceil(items.length / columns);
+
+      setLayout({
+        cardHeight,
+        cardWidth,
+        columns,
+        gap,
+        height: rows * cardHeight + Math.max(0, rows - 1) * gap,
+      });
+    }
+
+    updateLayout();
+
+    const resizeObserver = new ResizeObserver(updateLayout);
+    resizeObserver.observe(gridElement);
+
+    return () => resizeObserver.disconnect();
+  }, [aspectRatio, columnRulesKey, gap, items.length]);
+
+  return (
+    <div
+      ref={gridRef}
+      className={`archive-layout-grid relative ${className}`}
+      style={{ height: layout.height || 1 }}
+    >
+      {layout.cardWidth > 0 && layout.cardHeight > 0 && items.map((item, index) => {
+        const column = index % layout.columns;
+        const row = Math.floor(index / layout.columns);
+        const x = column * (layout.cardWidth + layout.gap);
+        const y = row * (layout.cardHeight + layout.gap);
+
+        return (
+          <div
+            className="archive-layout-grid-item absolute left-0 top-0"
+            key={getKey(item)}
+            style={{
+              height: `${layout.cardHeight}px`,
+              transform: `translate(${x}px, ${y}px)`,
+              width: `${layout.cardWidth}px`,
+            }}
+          >
+            {renderItem(item)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FilmGrid({ films: filmItems }) {
+  return (
+    <ArchiveLayoutGrid
+      aspectRatio={1.06}
+      items={filmItems}
+      renderItem={(film) => <FilmCard film={film} />}
+    />
   );
 }
 
@@ -635,19 +895,12 @@ function EraCard({ era }) {
   return (
     <Link
       to={`/interviews/${era.slug}`}
-      className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+      className="archive-card card-copy flex h-full min-w-0 flex-col justify-start px-2 py-2 transition hover:-translate-y-1"
     >
-      <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.year}</p>
-      <StagedTitle
-        as="h3"
-        className="mt-2 text-[28px] font-bold leading-tight"
-        mobileLineCount={2}
-        tabletLineCount={2}
-        desktopLineCount={1}
-      >
+      <p className="text-[13px] uppercase leading-none tracking-[0.08em] text-[#6faef2]">{era.year}</p>
+      <CardTitle className="mt-1 text-[clamp(22px,1.55vw,28px)] font-bold uppercase leading-[1.02]">
         {era.era}
-      </StagedTitle>
-      <p className="mt-3 text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
+      </CardTitle>
     </Link>
   );
 }
@@ -656,23 +909,20 @@ function InterviewItemCard({ eraSlug, item }) {
   return (
     <Link
       to={`/interviews/${eraSlug}/${item.slug}`}
-      className="overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+      className="archive-card flex h-full min-w-0 flex-col transition hover:-translate-y-1"
     >
-      <img src={item.image} alt={item.title} className="h-52 w-full object-cover" />
-      <div className="p-6">
-        <p className="text-[15px] text-[#6b5948]">
+      <img
+        src={item.image}
+        alt={item.title}
+        className="block aspect-video w-full shrink-0 rounded-[1.5rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+      />
+      <div className="card-copy flex min-h-0 min-w-0 flex-1 flex-col justify-start px-2 py-3">
+        <p className="break-words text-[12px] leading-tight text-[#6b5948]">
           {item.outlet} · {item.date}
         </p>
-        <StagedTitle
-          as="h4"
-          className="mt-2 text-[26px] font-bold leading-tight"
-          mobileLineCount={2}
-          tabletLineCount={2}
-          desktopLineCount={1}
-        >
+        <CardTitle as="h4" className="mt-1.5 text-[clamp(20px,1.55vw,28px)] font-bold uppercase leading-[1.03]">
           {item.title}
-        </StagedTitle>
-        <p className="mt-4 text-[20px] leading-[1.5] text-[#5a4631]">“{item.quote}”</p>
+        </CardTitle>
       </div>
     </Link>
   );
@@ -680,31 +930,33 @@ function InterviewItemCard({ eraSlug, item }) {
 
 function GalleryCard({ item }) {
   return (
-    <Link to={`/gallery/${item.slug}`} className="transition hover:-translate-y-1">
+    <Link to={`/gallery/${item.slug}`} className="archive-card flex h-full flex-col transition hover:-translate-y-1">
       <img
         src={item.img}
         alt={item.title}
-        className="h-48 w-full rounded-[1.1rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+        className="h-[70%] w-full rounded-[1.1rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
       />
-      <p className="mt-3 text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
-        {item.date}
-      </p>
-      <StagedTitle
-        as="h4"
-        className="mt-1 text-[18px] font-bold"
-        mobileLineCount={2}
-        tabletLineCount={2}
-        desktopLineCount={1}
-      >
-        {item.title}
-      </StagedTitle>
+      <div className="card-copy">
+        <p className="mt-3 text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
+          {item.date}
+        </p>
+        <CardTitle as="h4" className="mt-1 text-[18px] font-bold leading-[1.2]">
+          {item.title}
+        </CardTitle>
+      </div>
     </Link>
   );
 }
 
-function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
+function HeroImageDeck({
+  isOpen,
+  setIsOpen,
+  activeCard,
+  setActiveCard,
+  isDesktop,
+  layoutShift,
+}) {
   const [hearts, setHearts] = useState([]);
-  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
   const deckRef = useRef(null);
 
   const cardWidth = 520;
@@ -714,17 +966,6 @@ function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
   const mainImage = "/image/hothothot.JPG";
   const deckImages = gallery.slice(0, 5);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-
-    function handleChange(event) {
-      setIsDesktop(event.matches);
-    }
-
-    setIsDesktop(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
 
   function handleClick(event) {
     const rect = (deckRef.current ?? event.currentTarget).getBoundingClientRect();
@@ -791,45 +1032,25 @@ function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
   if (!isDesktop) {
     return (
       <div
-        key="mobile-hero-deck"
         ref={deckRef}
-        className="hero-deck-fade relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible"
+        className={`relative mx-auto mt-8 w-full max-w-[520px] cursor-pointer select-none overflow-visible ${
+          layoutShift ? `hero-deck-layout-${layoutShift}` : ""
+        }`}
       >
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute -left-[42dvw] top-[38px] z-0 h-[190px] w-[calc(70dvw+120px)] overflow-visible text-[#9cc9ff] lg:hidden"
-          viewBox="0 0 520 190"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M 0 114 C 92 104 174 88 250 62 C 326 36 404 28 520 26"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="3.5"
-            opacity="0.66"
-          />
-          <path
-            d="M 0 146 C 96 136 180 120 258 96 C 334 72 414 64 520 62"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="3.5"
-            opacity="0.48"
-          />
-        </svg>
-
-        <div
-          onClick={handleClick}
-          onDoubleClick={() => setIsOpen((current) => !current)}
-          className="relative z-10 rounded-[2.5rem] bg-[#9cc9ff] p-4 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        >
-          <div className="overflow-hidden rounded-[2rem]">
-            <img
-              src={mainImage}
-              alt="Ryan Gosling"
-              className="h-[520px] w-full object-cover"
-            />
+        <div className="hero-main-visual relative pt-7">
+          <div className="pointer-events-none absolute inset-x-[-20px] top-0 bottom-7 rounded-[3rem] border-2 border-[#3b2a1a]/15" />
+          <div
+            onClick={handleClick}
+            onDoubleClick={() => setIsOpen((current) => !current)}
+            className="hero-main-card relative z-10 rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          >
+            <div className="overflow-hidden rounded-[2.5rem]">
+              <img
+                src={mainImage}
+                alt="Ryan Gosling"
+                className="h-[520px] w-full object-cover"
+              />
+            </div>
           </div>
         </div>
 
@@ -877,7 +1098,11 @@ function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
   }
 
   return (
-    <div key="desktop-hero-deck" className="hero-deck-fade hero-deck-stage relative w-full max-w-[1160px] overflow-visible">
+    <div
+      className={`hero-deck-stage relative w-full max-w-[1160px] overflow-visible ${
+        layoutShift ? `hero-deck-layout-${layoutShift}` : ""
+      }`}
+    >
       <div
         ref={deckRef}
         className="hero-deck-inner absolute isolate left-1/2 top-0 h-[700px] w-[1160px] origin-top cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0"
@@ -955,30 +1180,28 @@ function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
         )}
 
         <div
-          className="absolute top-[28px] z-[180] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          onClick={handleClick}
-          onDoubleClick={() => {
-            setIsOpen((current) => !current);
-            setActiveCard(null);
-          }}
-          style={{ left: `${mainLeft}px` }}
+          className="hero-main-visual absolute top-0 z-[180] h-[648px] w-[560px] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          style={{ left: `${mainLeft - 20}px` }}
         >
-          <div className="h-full overflow-hidden rounded-[2.5rem]">
-            <img
-              src={mainImage}
-              alt="Ryan Gosling"
-              className="h-full w-full object-cover"
-            />
+          <div
+            className="hero-main-card absolute left-[20px] top-[28px] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            onClick={handleClick}
+            onDoubleClick={() => {
+              setIsOpen((current) => !current);
+              setActiveCard(null);
+            }}
+          >
+            <div className="h-full overflow-hidden rounded-[2.5rem]">
+              <img
+                src={mainImage}
+                alt="Ryan Gosling"
+                className="h-full w-full object-cover"
+              />
+            </div>
           </div>
-        </div>
 
-        <div
-          className="pointer-events-none absolute top-0 h-[620px] rounded-[3rem] border-2 border-[#3b2a1a]/15 transition-all duration-700"
-          style={{
-            left: `${mainLeft - 20}px`,
-            width: "560px",
-          }}
-        />
+          <div className="pointer-events-none absolute left-0 top-0 h-[620px] w-[560px] rounded-[3rem] border-2 border-[#3b2a1a]/15" />
+        </div>
 
         {hearts.map((heart) => (
           <span
@@ -998,72 +1221,431 @@ function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
   );
 }
 
+function HeroTransitionOverlay({ transition }) {
+  if (!transition) return null;
+
+  const { fromMode, fromSnapshot, phase, toMode, toSnapshot } = transition;
+  const stageMode = phase === "out" ? fromMode : toMode;
+  const phaseClass = `hero-motion-${phase}-${toMode}`;
+  const activeSnapshot = phase === "out" ? fromSnapshot : toSnapshot;
+  if (!activeSnapshot) return null;
+
+  const { mainHtml, mainRect, shieldHtml, shieldRect, waveHtml, wavePlacement, waveRect } = activeSnapshot;
+
+  return (
+    <div aria-hidden="true" className={`hero-motion-overlay hero-motion-mode-${stageMode} ${phaseClass}`}>
+      <div
+        className="hero-motion-main"
+        style={{
+          height: `${mainRect.height}px`,
+          left: `${mainRect.left}px`,
+          top: `${mainRect.top}px`,
+          width: `${mainRect.width}px`,
+        }}
+        dangerouslySetInnerHTML={{ __html: mainHtml }}
+      />
+      <div
+        className={`hero-motion-wave hero-motion-wave-${wavePlacement}`}
+        style={{
+          height: `${waveRect.height}px`,
+          left: `${waveRect.left}px`,
+          top: `${waveRect.top}px`,
+          width: `${waveRect.width}px`,
+        }}
+        dangerouslySetInnerHTML={{ __html: waveHtml }}
+      />
+      {shieldRect && shieldHtml && (
+        <div
+          className={`hero-motion-shield hero-motion-shield-${wavePlacement}`}
+          style={{
+            height: `${shieldRect.height}px`,
+            left: `${shieldRect.left}px`,
+            top: `${shieldRect.top}px`,
+            width: `${shieldRect.width}px`,
+          }}
+          dangerouslySetInnerHTML={{ __html: shieldHtml }}
+        />
+      )}
+    </div>
+  );
+}
+
+function sanitizeSnapshotNode(node) {
+  const clone = node.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
+  clone.querySelectorAll("a, button, input, textarea, select").forEach((element) => {
+    element.setAttribute("tabindex", "-1");
+    element.setAttribute("aria-hidden", "true");
+  });
+  return clone;
+}
+
+function createMotionSnapshot(heroSectionElement, mode) {
+  if (!heroSectionElement) return null;
+
+  const wavePlacement = mode === "desktop" ? "top" : "bottom";
+  const mainElement = heroSectionElement.querySelector(".hero-main-visual");
+  const waveElement = heroSectionElement.querySelector(`.hero-wave-field-${wavePlacement}`);
+  const shieldElement = heroSectionElement.querySelector(`.hero-wave-shield-${wavePlacement}`);
+  if (!mainElement || !waveElement) return null;
+
+  const mainRect = mainElement.getBoundingClientRect();
+  const waveRect = waveElement.getBoundingClientRect();
+  const shieldRect = shieldElement?.getBoundingClientRect();
+  const sectionRect = heroSectionElement.getBoundingClientRect();
+  const mainClone = sanitizeSnapshotNode(mainElement);
+  const waveClone = sanitizeSnapshotNode(waveElement);
+  const shieldClone = shieldElement ? sanitizeSnapshotNode(shieldElement) : null;
+
+  let normalizedShieldRect = null;
+  let normalizedShieldHtml = "";
+  if (shieldRect && shieldRect.width > 1 && shieldRect.height > 1 && shieldClone) {
+    normalizedShieldRect = {
+      height: shieldRect.height,
+      left: shieldRect.left,
+      top: shieldRect.top,
+      width: shieldRect.width,
+    };
+    normalizedShieldHtml = shieldClone.outerHTML;
+  } else {
+    const fallbackLeft = mainRect.left + mainRect.width * 0.5;
+    normalizedShieldRect = {
+      height: Math.max(1, waveRect.height + 84),
+      left: fallbackLeft,
+      top: waveRect.top - 42,
+      width: Math.max(1, sectionRect.right - fallbackLeft + 180),
+    };
+    normalizedShieldHtml = `<div class="hero-wave-shield-fallback"></div>`;
+  }
+
+  return {
+    mainHtml: mainClone.outerHTML,
+    mainRect: {
+      height: mainRect.height,
+      left: mainRect.left,
+      top: mainRect.top,
+      width: mainRect.width,
+    },
+    shieldHtml: normalizedShieldHtml,
+    shieldRect: normalizedShieldRect,
+    waveHtml: waveClone.outerHTML,
+    wavePlacement,
+    waveRect: {
+      height: waveRect.height,
+      left: waveRect.left,
+      top: waveRect.top,
+      width: waveRect.width,
+    },
+  };
+}
+
+function isValidMotionSnapshot(snapshot) {
+  if (!snapshot) return false;
+
+  return (
+    snapshot.mainRect?.width > 0 &&
+    snapshot.mainRect?.height > 0 &&
+    snapshot.waveRect?.width > 0 &&
+    snapshot.waveRect?.height > 0 &&
+    Boolean(snapshot.mainHtml) &&
+    Boolean(snapshot.waveHtml)
+  );
+}
+
+function waitForFrames(count, callback) {
+  if (count <= 0) {
+    callback();
+    return;
+  }
+
+  requestAnimationFrame(() => waitForFrames(count - 1, callback));
+}
+
+function captureMotionSnapshotWithRetry(sectionElement, mode, attempts, onReady) {
+  const snapshot = createMotionSnapshot(sectionElement, mode);
+
+  if (isValidMotionSnapshot(snapshot) || attempts <= 0) {
+    onReady(snapshot);
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    captureMotionSnapshotWithRetry(sectionElement, mode, attempts - 1, onReady);
+  });
+}
+
 function HomePage() {
+  const heroSectionRef = useRef(null);
+  const heroGridRef = useRef(null);
+  const lastHeroRectsRef = useRef(null);
   const [isHeroDeckOpen, setIsHeroDeckOpen] = useState(false);
   const [activeHeroCard, setActiveHeroCard] = useState(null);
-  const heroCardWidth = 520;
-  const heroCardPeek = 72;
-  const heroActiveCardLeft = 150;
-  const heroRightStackLeft = heroActiveCardLeft + heroCardWidth + heroCardPeek;
-  const heroMainLeft = isHeroDeckOpen ? heroRightStackLeft + 18 : 500;
+  const [heroMode, setHeroMode] = useState(() =>
+    window.innerWidth >= 1024 ? "desktop" : "mobile"
+  );
+  const [heroMotionTick, setHeroMotionTick] = useState(0);
+  const [heroShieldVars, setHeroShieldVars] = useState({});
+  const [heroTransition, setHeroTransition] = useState(null);
+
+  useEffect(() => {
+    const BREAKPOINT = 1024;
+    const mediaQuery = window.matchMedia(`(min-width: ${BREAKPOINT}px)`);
+    let outTimer;
+    let inTimer;
+    let transitionId = 0;
+    let currentMode = mediaQuery.matches ? "desktop" : "mobile";
+    let pendingMode = "";
+    let isAnimating = false;
+    let isDisposed = false;
+
+    function clearTransitionTimers() {
+      window.clearTimeout(outTimer);
+      window.clearTimeout(inTimer);
+    }
+
+    function finishSwitch(nextMode, token = transitionId) {
+      if (isDisposed || token !== transitionId) return;
+
+      setHeroTransition(null);
+      currentMode = nextMode;
+      isAnimating = false;
+
+      if (pendingMode && pendingMode !== currentMode) {
+        const queuedMode = pendingMode;
+        pendingMode = "";
+        startModeSwitch(queuedMode);
+        return;
+      }
+
+      pendingMode = "";
+    }
+
+    function startModeSwitch(nextMode) {
+      if (nextMode === currentMode) {
+        pendingMode = "";
+        return;
+      }
+
+      if (isAnimating) {
+        pendingMode = nextMode;
+        return;
+      }
+
+      isAnimating = true;
+      transitionId += 1;
+      const token = transitionId;
+      clearTransitionTimers();
+      setHeroMotionTick((current) => current + 1);
+
+      captureMotionSnapshotWithRetry(heroSectionRef.current, currentMode, 8, (fromSnapshot) => {
+        if (isDisposed || token !== transitionId) return;
+
+        if (!isValidMotionSnapshot(fromSnapshot)) {
+          setHeroMode(nextMode);
+          finishSwitch(nextMode, token);
+          return;
+        }
+
+        setHeroTransition({
+          fromMode: currentMode,
+          fromSnapshot,
+          phase: "out",
+          toMode: nextMode,
+          toSnapshot: null,
+        });
+
+        outTimer = window.setTimeout(() => {
+          if (isDisposed || token !== transitionId) return;
+
+          setHeroMode(nextMode);
+          waitForFrames(2, () => {
+            if (isDisposed || token !== transitionId) return;
+
+            captureMotionSnapshotWithRetry(heroSectionRef.current, nextMode, 10, (toSnapshot) => {
+              if (isDisposed || token !== transitionId) return;
+
+              if (!isValidMotionSnapshot(toSnapshot)) {
+                finishSwitch(nextMode, token);
+                return;
+              }
+
+              setHeroTransition({
+                fromMode: currentMode,
+                fromSnapshot,
+                phase: "in",
+                toMode: nextMode,
+                toSnapshot,
+              });
+
+              inTimer = window.setTimeout(() => finishSwitch(nextMode, token), 760);
+            });
+          });
+        }, 360);
+      });
+    }
+
+    function handleBreakpointChange(event) {
+      const nextMode = event.matches ? "desktop" : "mobile";
+      startModeSwitch(nextMode);
+    }
+
+    setHeroMode(currentMode);
+    mediaQuery.addEventListener("change", handleBreakpointChange);
+
+    return () => {
+      isDisposed = true;
+      clearTransitionTimers();
+      mediaQuery.removeEventListener("change", handleBreakpointChange);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const sectionElement = heroSectionRef.current;
+    if (!sectionElement) return undefined;
+
+    let animationFrame;
+    let trackingFrame;
+    const timeoutIds = [];
+
+    function updateShield() {
+      const mainCard = sectionElement.querySelector(".hero-main-card");
+      const mainVisual = sectionElement.querySelector(".hero-main-visual");
+      const topWave = sectionElement.querySelector(".hero-wave-field-top");
+      const bottomWave = sectionElement.querySelector(".hero-wave-field-bottom");
+      if (!mainCard || !mainVisual) return;
+
+      const sectionRect = sectionElement.getBoundingClientRect();
+      const mainRect = mainVisual.getBoundingClientRect();
+      const topRect = topWave?.getBoundingClientRect();
+      const bottomRect = bottomWave?.getBoundingClientRect();
+      const activeWaveRect = heroMode === "desktop" ? topRect : bottomRect;
+      const shieldLeft = mainRect.left + mainRect.width * 0.5 - sectionRect.left;
+      const shieldWidth = sectionRect.right - (sectionRect.left + shieldLeft) + 180;
+      const nextVars = {
+        "--hero-shield-left": `${Math.round(shieldLeft)}px`,
+        "--hero-shield-width": `${Math.round(shieldWidth)}px`,
+        "--hero-shield-top-top": `${Math.round((topRect?.top ?? mainRect.top) - sectionRect.top - 42)}px`,
+        "--hero-shield-top-height": `${Math.round((topRect?.height ?? 220) + 84)}px`,
+        "--hero-shield-bottom-top": `${Math.round((bottomRect?.top ?? mainRect.top) - sectionRect.top - 42)}px`,
+        "--hero-shield-bottom-height": `${Math.round((bottomRect?.height ?? 220) + 84)}px`,
+      };
+
+      setHeroShieldVars((current) => {
+        if (
+          current["--hero-shield-left"] === nextVars["--hero-shield-left"] &&
+          current["--hero-shield-width"] === nextVars["--hero-shield-width"] &&
+          current["--hero-shield-top-top"] === nextVars["--hero-shield-top-top"] &&
+          current["--hero-shield-top-height"] === nextVars["--hero-shield-top-height"] &&
+          current["--hero-shield-bottom-top"] === nextVars["--hero-shield-bottom-top"] &&
+          current["--hero-shield-bottom-height"] === nextVars["--hero-shield-bottom-height"]
+        ) {
+          return current;
+        }
+
+        return nextVars;
+      });
+
+      if (!heroTransition && activeWaveRect) {
+        lastHeroRectsRef.current = {
+          cardRect: {
+            height: mainRect.height,
+            left: mainRect.left,
+            top: mainRect.top,
+            width: mainRect.width,
+          },
+          cloneHtml: mainVisual.cloneNode(true).outerHTML,
+          waveRect: {
+            height: activeWaveRect.height,
+            left: activeWaveRect.left,
+            top: activeWaveRect.top,
+            width: activeWaveRect.width,
+          },
+        };
+      }
+    }
+
+    function scheduleUpdate() {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(updateShield);
+    }
+
+    function trackDuringMotion(startTime = performance.now()) {
+      updateShield();
+
+      if (performance.now() - startTime > 1350) return;
+
+      trackingFrame = window.requestAnimationFrame(() => trackDuringMotion(startTime));
+    }
+
+    scheduleUpdate();
+    trackDuringMotion();
+    [120, 420, 780, 1120, 1360].forEach((delay) => {
+      timeoutIds.push(window.setTimeout(scheduleUpdate, delay));
+    });
+
+    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    resizeObserver.observe(sectionElement);
+
+    const mainCard = sectionElement.querySelector(".hero-main-card");
+    if (mainCard) {
+      resizeObserver.observe(mainCard);
+    }
+
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.cancelAnimationFrame(trackingFrame);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [heroMode, heroMotionTick, heroTransition, isHeroDeckOpen, activeHeroCard]);
 
   return (
     <Layout>
-      <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 md:px-10">
-        <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]">
+      <section
+        ref={heroSectionRef}
+        style={heroShieldVars}
+        className={`relative mx-auto max-w-7xl overflow-visible px-6 pb-12 pt-6 md:px-10 ${
+          isHeroDeckOpen ? "hero-is-open" : ""
+        } ${heroTransition ? "hero-is-transitioning" : ""}`}
+      >
+        {["top", "bottom"].map((placement) => (
           <svg
+            key={placement}
             aria-hidden="true"
-            className="pointer-events-none absolute top-[220px] z-0 hidden h-[300px] overflow-visible text-[#9cc9ff] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block"
-            style={{
-              left: "calc(50% - 1180px)",
-              width: `${heroMainLeft + heroCardWidth + 600}px`,
-            }}
-            viewBox="0 0 1180 300"
+            className={`hero-wave-field hero-wave-field-${placement} pointer-events-none absolute z-0 text-[#9cc9ff]`}
+            viewBox="0 0 1180 220"
             preserveAspectRatio="none"
           >
             <path
-              d="M 8 176 C 178 82 302 78 430 146 C 566 218 682 224 842 132 C 966 60 1072 48 1172 88"
+              d={HERO_WAVE_TOP_PATH}
               fill="none"
               stroke="currentColor"
               strokeLinecap="round"
               strokeWidth="5"
-              opacity="0.74"
+              opacity="0.64"
             />
             <path
-              d="M 8 204 C 184 112 306 108 438 174 C 574 244 700 252 856 164 C 978 94 1080 84 1172 120"
+              d={HERO_WAVE_BOTTOM_PATH}
               fill="none"
               stroke="currentColor"
               strokeLinecap="round"
               strokeWidth="5"
-              opacity="0.6"
+              opacity="0.48"
             />
           </svg>
+        ))}
 
+        <div aria-hidden="true" className="hero-wave-shield hero-wave-shield-top pointer-events-none absolute" />
+        <div aria-hidden="true" className="hero-wave-shield hero-wave-shield-bottom pointer-events-none absolute" />
+
+        <div
+          ref={heroGridRef}
+          className="hero-home-grid relative z-10 grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]"
+        >
           <div className="relative z-30">
-            <svg
-              aria-hidden="true"
-              className="pointer-events-none absolute -left-24 top-[42px] z-0 h-[190px] w-[calc(100dvw+10rem)] overflow-visible text-[#9cc9ff] lg:hidden"
-              viewBox="0 0 640 190"
-              preserveAspectRatio="none"
-            >
-              <path
-                d="M 0 74 C 96 26 178 28 252 74 C 340 128 438 126 640 62"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="3.5"
-                opacity="0.62"
-              />
-              <path
-                d="M 0 104 C 102 56 186 58 262 104 C 352 158 452 154 640 92"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="3.5"
-                opacity="0.48"
-              />
-            </svg>
-
             <div className="relative z-10 mb-7 inline-flex items-center gap-2 text-[16px] font-medium uppercase tracking-[0.08em] text-[#6faef2]">
               <Sparkles size={16} />
               Unofficial Fan Archive
@@ -1125,10 +1707,14 @@ function HomePage() {
               setIsOpen={setIsHeroDeckOpen}
               activeCard={activeHeroCard}
               setActiveCard={setActiveHeroCard}
+              isDesktop={heroMode === "desktop"}
+              layoutShift=""
             />
           </div>
         </div>
       </section>
+
+      <HeroTransitionOverlay transition={heroTransition} />
 
       <section className="mx-auto max-w-7xl px-6 pb-12 pt-4 md:px-10">
         <SectionHeader
@@ -1138,11 +1724,7 @@ function HomePage() {
           linkText="View all films"
         />
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-          {films.map((film) => (
-            <FilmCard key={film.slug} film={film} />
-          ))}
-        </div>
+        <FilmGrid films={films} />
       </section>
 
       <section className="mx-auto max-w-7xl px-6 pb-12 pt-8 md:px-10">
@@ -1153,11 +1735,18 @@ function HomePage() {
           linkText="View all interviews"
         />
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {interviewEras.map((era) => (
-            <EraCard key={era.slug} era={era} />
-          ))}
-        </div>
+        <ArchiveLayoutGrid
+          aspectRatio={3.15}
+          columnRules={[
+            { min: 1100, columns: 4 },
+            { min: 760, columns: 3 },
+            { min: 520, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={14}
+          items={interviewEras}
+          renderItem={(era) => <EraCard era={era} />}
+        />
       </section>
 
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-8 md:px-10">
@@ -1168,11 +1757,15 @@ function HomePage() {
           linkText="View full gallery"
         />
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-          {gallery.map((item) => (
-            <GalleryCard key={item.slug} item={item} />
-          ))}
-        </div>
+        <ArchiveLayoutGrid
+          aspectRatio={0.86}
+          columnRules={[
+            { min: 768, columns: 5 },
+            { min: 0, columns: 2 },
+          ]}
+          items={gallery}
+          renderItem={(item) => <GalleryCard item={item} />}
+        />
       </section>
     </Layout>
   );
@@ -1184,11 +1777,7 @@ function FilmographyPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/" label="Back to Home" icon={<Film />} />
         <PageTitle className="mb-8">Filmography</PageTitle>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {films.map((film) => (
-            <FilmCard key={film.slug} film={film} />
-          ))}
-        </div>
+        <FilmGrid films={films} />
       </section>
     </Layout>
   );
@@ -1214,9 +1803,9 @@ function FilmDetailPage() {
         <BackButton to="/filmography" label="Back to Filmography" icon={<Film />} />
 
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <img src={film.img} alt={film.title} className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
+          <DetailImage src={film.img} alt={film.title} />
 
-          <div>
+          <div className="detail-copy">
             <p className="text-[16px] text-[#6b5948]">{film.year}</p>
             <DetailTitle className="uppercase md:leading-none">{film.title}</DetailTitle>
             <p className="mt-4 text-[20px] text-[#6faef2] md:text-[24px]">{film.role}</p>
@@ -1241,18 +1830,12 @@ function InterviewsPage() {
         <div className="space-y-16">
           {interviewEras.map((era) => (
             <section key={era.slug}>
-              <div className="mb-6 flex items-end justify-between gap-6">
-                <div>
+              <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+                <div className="min-w-0">
                   <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{era.year}</p>
-                  <StagedTitle
-                    as="h3"
-                    className="text-[38px] font-bold uppercase tracking-[-0.03em]"
-                    mobileLineCount={2}
-                    tabletLineCount={2}
-                    desktopLineCount={1}
-                  >
+                  <h3 className="text-[clamp(32px,7vw,42px)] font-bold uppercase leading-[1.05] tracking-[-0.03em]">
                     {era.era}
-                  </StagedTitle>
+                  </h3>
                   <p className="mt-3 max-w-3xl text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
                 </div>
 
@@ -1264,11 +1847,19 @@ function InterviewsPage() {
                 </Link>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {era.items.map((item) => (
-                  <InterviewItemCard key={item.slug} eraSlug={era.slug} item={item} />
-                ))}
-              </div>
+              <ArchiveLayoutGrid
+                aspectRatio={1.06}
+                columnRules={[
+                  { min: 1100, columns: 4 },
+                  { min: 760, columns: 3 },
+                  { min: 520, columns: 2 },
+                  { min: 0, columns: 1 },
+                ]}
+                className="mt-0"
+                gap={18}
+                items={era.items}
+                renderItem={(item) => <InterviewItemCard eraSlug={era.slug} item={item} />}
+              />
             </section>
           ))}
         </div>
@@ -1296,7 +1887,7 @@ function InterviewEraPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/interviews" label="Back to Interviews" icon={<Quote />} />
 
-        <div className="mt-8">
+        <div className="detail-copy mt-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             {era.year} · {era.film}
           </p>
@@ -1306,11 +1897,19 @@ function InterviewEraPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {era.items.map((item) => (
-            <InterviewItemCard key={item.slug} eraSlug={era.slug} item={item} />
-          ))}
-        </div>
+        <ArchiveLayoutGrid
+          aspectRatio={1.06}
+          className="mt-12"
+          columnRules={[
+            { min: 1100, columns: 4 },
+            { min: 760, columns: 3 },
+            { min: 520, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={18}
+          items={era.items}
+          renderItem={(item) => <InterviewItemCard eraSlug={era.slug} item={item} />}
+        />
       </section>
     </Layout>
   );
@@ -1337,11 +1936,7 @@ function InterviewDetailPage() {
         <BackButton to={`/interviews/${era.slug}`} label={`Back to ${era.era}`} icon={<Quote />} />
 
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-          <img
-            src={interview.image}
-            alt={interview.title}
-            className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
-          />
+          <DetailImage src={interview.image} alt={interview.title} />
 
           <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
             <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.era}</p>
@@ -1398,11 +1993,16 @@ function GalleryPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-          {filteredGallery.map((item) => (
-            <GalleryCard key={item.slug} item={item} />
-          ))}
-        </div>
+        <ArchiveLayoutGrid
+          aspectRatio={0.86}
+          columnRules={[
+            { min: 1280, columns: 5 },
+            { min: 768, columns: 3 },
+            { min: 0, columns: 2 },
+          ]}
+          items={filteredGallery}
+          renderItem={(item) => <GalleryCard item={item} />}
+        />
       </section>
     </Layout>
   );
@@ -1428,7 +2028,7 @@ function GalleryDetailPage() {
         <BackButton to="/gallery" label="Back to Gallery" icon={<Camera />} />
 
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[1fr_0.9fr]">
-          <img src={item.img} alt={item.title} className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
+          <DetailImage src={item.img} alt={item.title} />
 
           <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
             <p className="text-[16px] text-[#6b5948]">Gallery Entry · {item.date}</p>
@@ -1456,33 +2056,33 @@ function ReasonsPage() {
           A directory-style archive of 100 reasons. Each entry can be opened and edited later.
         </p>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {reasons.map((reason) => (
+        <ArchiveLayoutGrid
+          aspectRatio={1.18}
+          columnRules={[
+            { min: 1280, columns: 4 },
+            { min: 768, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          items={reasons}
+          renderItem={(reason) => (
             <Link
-              key={reason.slug}
               to={`/100-reasons/${reason.slug}`}
-              className="rounded-[1.25rem] bg-[#f8e6a2] p-5 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[1.25rem] bg-[#f8e6a2] p-5 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
             >
               <p className="text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
                 Reason {reason.number}
               </p>
 
-              <StagedTitle
-                as="h3"
-                className="mt-2 text-[24px] font-bold leading-tight"
-                mobileLineCount={2}
-                tabletLineCount={2}
-                desktopLineCount={1}
-              >
+              <CardTitle className="mt-2 text-[24px] font-bold leading-[1.12]">
                 {reason.title}
-              </StagedTitle>
+              </CardTitle>
 
               <p className="mt-3 text-[16px] leading-[1.5] text-[#5a4631]">
                 {reason.summary}
               </p>
             </Link>
-          ))}
-        </div>
+          )}
+        />
       </section>
     </Layout>
   );
@@ -1538,31 +2138,31 @@ function HandcraftPage() {
           A place for handcraft plans, sketches, and archive-style notes.
         </p>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {handcraftSections.map((item) => (
+        <ArchiveLayoutGrid
+          aspectRatio={1.65}
+          columnRules={[
+            { min: 768, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={24}
+          items={handcraftSections}
+          renderItem={(item) => (
             <Link
-              key={item.slug}
               to={`/handcraft/${item.slug}`}
-              className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
             >
               <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
                 {item.eyebrow}
               </p>
-              <StagedTitle
-                as="h3"
-                className="mt-2 text-[30px] font-bold uppercase md:text-[38px]"
-                mobileLineCount={2}
-                tabletLineCount={2}
-                desktopLineCount={1}
-              >
+              <CardTitle className="mt-2 text-[30px] font-bold uppercase leading-[1.08] md:text-[38px]">
                 {item.title}
-              </StagedTitle>
+              </CardTitle>
               <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">
                 {item.summary}
               </p>
             </Link>
-          ))}
-        </div>
+          )}
+        />
       </section>
     </Layout>
   );
@@ -1620,28 +2220,29 @@ function SNLPage() {
           SNL archive entries are organised by season first, then divided into individual episodes.
         </p>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {snlSeasons.map((season) => (
+        <ArchiveLayoutGrid
+          aspectRatio={1.2}
+          columnRules={[
+            { min: 1100, columns: 3 },
+            { min: 768, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={24}
+          items={snlSeasons}
+          renderItem={(season) => (
             <Link
-              key={season.slug}
               to={`/saturday-night-live/${season.slug}`}
-              className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
             >
               <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
-              <StagedTitle
-                as="h3"
-                className="mt-2 text-[32px] font-bold uppercase"
-                mobileLineCount={2}
-                tabletLineCount={2}
-                desktopLineCount={1}
-              >
+              <CardTitle className="mt-2 text-[32px] font-bold uppercase leading-[1.08]">
                 {season.season}
-              </StagedTitle>
+              </CardTitle>
               <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">{season.description}</p>
               <p className="mt-5 text-[16px] text-[#6b5948]">{season.episodes.length} episodes</p>
             </Link>
-          ))}
-        </div>
+          )}
+        />
       </section>
     </Layout>
   );
@@ -1666,7 +2267,7 @@ function SNLSeasonPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/saturday-night-live" label="Back to Saturday Night Live" icon={<Tv />} />
 
-        <div className="mt-8">
+        <div className="detail-copy mt-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
           <DetailTitle className="uppercase">{season.season}</DetailTitle>
           <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
@@ -1674,32 +2275,34 @@ function SNLSeasonPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {season.episodes.map((episode) => (
+        <ArchiveLayoutGrid
+          aspectRatio={0.92}
+          className="mt-12"
+          columnRules={[
+            { min: 1100, columns: 3 },
+            { min: 768, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={24}
+          items={season.episodes}
+          renderItem={(episode) => (
             <Link
-              key={episode.slug}
               to={`/saturday-night-live/${season.slug}/${episode.slug}`}
-              className="overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
             >
-              <img src={episode.image} alt={episode.title} className="h-52 w-full object-cover" />
-              <div className="p-6">
+              <img src={episode.image} alt={episode.title} className="h-[52%] w-full object-cover" />
+              <div className="card-copy p-6">
                 <p className="text-[15px] text-[#6b5948]">
                   {episode.episode} · {episode.date}
                 </p>
-                <StagedTitle
-                  as="h3"
-                  className="mt-2 text-[26px] font-bold leading-tight"
-                  mobileLineCount={2}
-                  tabletLineCount={2}
-                  desktopLineCount={1}
-                >
+                <CardTitle className="mt-2 text-[26px] font-bold leading-[1.1]">
                   {episode.title}
-                </StagedTitle>
+                </CardTitle>
                 <p className="mt-3 text-[17px] text-[#5a4631]">Host: {episode.host}</p>
               </div>
             </Link>
-          ))}
-        </div>
+          )}
+        />
       </section>
     </Layout>
   );
@@ -1726,11 +2329,7 @@ function SNLEpisodePage() {
         <BackButton to={`/saturday-night-live/${season.slug}`} label={`Back to ${season.season}`} icon={<Tv />} />
 
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
-          <img
-            src={episode.image}
-            alt={episode.title}
-            className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
-          />
+          <DetailImage src={episode.image} alt={episode.title} />
 
           <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
             <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">
@@ -1756,6 +2355,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <ArchiveCardMotion />
       <Routes>
         <Route path="/" element={<HomePage />} />
 
