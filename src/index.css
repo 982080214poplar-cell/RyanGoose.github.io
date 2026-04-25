@@ -105,17 +105,143 @@ body {
 }
 
 .title-reveal {
-  --title-reveal-y: 55%;
+  --title-reveal-origin: 2% 66%;
 }
 
 .title-reveal-blue {
-  clip-path: circle(0% at 0% var(--title-reveal-y));
-  transition: clip-path 650ms cubic-bezier(0.22, 1, 0.36, 1);
+  clip-path: polygon(
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin),
+    var(--title-reveal-origin)
+  );
+  transition: clip-path 1150ms cubic-bezier(0.22, 0.8, 0.2, 1);
+  will-change: clip-path;
 }
 
 .title-reveal:hover .title-reveal-blue,
 .title-reveal:focus-visible .title-reveal-blue {
-  clip-path: circle(145% at 0% var(--title-reveal-y));
+  transition-duration: 1750ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  clip-path: polygon(
+    -168% 58%,
+    -138% 4%,
+    -116% -48%,
+    -42% -104%,
+    12% -146%,
+    68% -94%,
+    136% -154%,
+    198% -84%,
+    238% -34%,
+    220% 28%,
+    264% 96%,
+    224% 166%,
+    202% 238%,
+    116% 220%,
+    28% 266%,
+    -96% 196%
+  );
+}
+
+.detail-grid {
+  transition:
+    gap 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    grid-template-columns 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.detail-media,
+.detail-panel {
+  transition:
+    aspect-ratio 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    object-position 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.detail-media {
+  aspect-ratio: 4 / 3;
+  display: block;
+  min-height: 260px;
+  object-position: center;
+}
+
+@media (min-width: 1024px) {
+  .detail-media {
+    aspect-ratio: 3 / 4;
+    min-height: 520px;
+  }
+}
+
+.staged-title {
+  display: grid;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.staged-title-stage {
+  grid-area: 1 / 1;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 320ms ease;
+  visibility: hidden;
+}
+
+.staged-title-stage.is-active {
+  opacity: 1;
+  position: relative;
+  visibility: visible;
+}
+
+.staged-title-measure {
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: translate(-200vw, -200vh);
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.detail-title {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: normal;
+  text-wrap: balance;
+  transition:
+    font-size 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    letter-spacing 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    line-height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 800ms ease,
+    transform 800ms ease;
+}
+
+.detail-title.is-settling {
+  opacity: 0.28;
+  transform: translateY(6px);
+}
+
+.natural-title {
+  white-space: normal;
 }
 
 @keyframes heartFloat {

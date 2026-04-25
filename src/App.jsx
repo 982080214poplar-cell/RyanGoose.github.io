@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
 import { Routes, Route, Link, Navigate, useParams, useLocation } from "react-router-dom";
 import films from "./data/films.json";
@@ -62,7 +62,7 @@ function Layout({ children }) {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="site-nav flex gap-8 text-[17px]">
+          <nav className="site-nav ml-auto flex gap-8 text-[17px]">
             <NavLinkItem to="/">Home</NavLinkItem>
             <NavLinkItem to="/filmography">Filmography</NavLinkItem>
             <NavLinkItem to="/interviews">Interviews</NavLinkItem>
@@ -207,16 +207,393 @@ function SectionHeader({ icon, title, linkTo, linkText }) {
   );
 }
 
-function BackButton({ to, label }) {
+function BackButton({ to, label, icon }) {
   return (
-    <Link
-      to={to}
-      aria-label={label}
-      title={label}
-      className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#9cc9ff] text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+    <div className="flex w-full items-center justify-between">
+      <Link
+        to={to}
+        aria-label={label}
+        title={label}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#9cc9ff] text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.12)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5]"
+      >
+        <ArrowLeft className="h-[22px] w-[22px]" strokeWidth={2.4} />
+      </Link>
+
+      {icon && (
+        <span className="inline-flex h-11 w-11 items-center justify-center bg-transparent text-[#6faef2] [&_svg]:h-11 [&_svg]:w-11">
+          {icon}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function createTitleLines(title, lineCount) {
+  const words = String(title).trim().split(/\s+/).filter(Boolean);
+
+  if (words.length <= lineCount) {
+    return [words.join(" ")];
+  }
+
+  const totalLetters = words.reduce((sum, word) => sum + word.length, 0);
+  const targetLetters = totalLetters / lineCount;
+  const lines = [];
+  let currentLine = "";
+  let currentLetters = 0;
+
+  words.forEach((word, index) => {
+    const remainingWords = words.length - index;
+    const remainingLines = lineCount - lines.length;
+    const shouldBreak =
+      currentLine &&
+      currentLetters + word.length > targetLetters &&
+      remainingWords >= remainingLines;
+
+    if (shouldBreak) {
+      lines.push(currentLine);
+      currentLine = word;
+      currentLetters = word.length;
+      return;
+    }
+
+    currentLine = currentLine ? `${currentLine} ${word}` : word;
+    currentLetters += word.length;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  while (lines.length > lineCount) {
+    const tail = lines.pop();
+    lines[lines.length - 1] = `${lines[lines.length - 1]} ${tail}`;
+  }
+
+  return lines;
+}
+
+function createMeasuredTitleLines(title, lineCount, measureElement, availableWidth) {
+  const words = String(title).trim().split(/\s+/).filter(Boolean);
+
+  if (!measureElement || !words.length) {
+    return createTitleLines(title, lineCount);
+  }
+
+  const probe = measureElement.querySelector("[data-measure-probe]");
+  if (!probe) {
+    return createTitleLines(title, lineCount);
+  }
+
+  function getTextWidth(text) {
+    probe.textContent = text;
+    return probe.scrollWidth;
+  }
+
+  if (lineCount === 1 || words.length <= 1) {
+    return [words.join(" ")];
+  }
+
+  const candidates = [];
+
+  function collectLines(startIndex, remainingLines, currentLines) {
+    if (remainingLines === 1) {
+      candidates.push([...currentLines, words.slice(startIndex).join(" ")]);
+      return;
+    }
+
+    const lastBreak = words.length - remainingLines;
+
+    for (let breakIndex = startIndex; breakIndex <= lastBreak; breakIndex += 1) {
+      collectLines(
+        breakIndex + 1,
+        remainingLines - 1,
+        [...currentLines, words.slice(startIndex, breakIndex + 1).join(" ")]
+      );
+    }
+  }
+
+  collectLines(0, Math.min(lineCount, words.length), []);
+
+  const scoredCandidates = candidates.map((lines) => {
+    const widths = lines.map(getTextWidth);
+    const maxWidth = Math.max(...widths);
+    const minWidth = Math.min(...widths);
+    const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+    const averageWidth = totalWidth / widths.length;
+    const balancePenalty = widths.reduce(
+      (sum, width) => sum + Math.abs(width - averageWidth),
+      0
+    );
+    const overflow = Math.max(0, maxWidth - availableWidth);
+
+    return {
+      lines,
+      score: overflow * 10000 + balancePenalty * 4 + (maxWidth - minWidth) * 2 + maxWidth * 0.15,
+    };
+  });
+
+  scoredCandidates.sort((a, b) => a.score - b.score);
+
+  return scoredCandidates[0]?.lines ?? createTitleLines(title, lineCount);
+}
+
+function findFittingMeasuredTitleLines(title, lineCount, measureElement, availableWidth) {
+  const words = String(title).trim().split(/\s+/).filter(Boolean);
+
+  if (!measureElement || !words.length) {
+    return createTitleLines(title, lineCount);
+  }
+
+  const probe = measureElement.querySelector("[data-measure-probe]");
+  if (!probe) {
+    return createTitleLines(title, lineCount);
+  }
+
+  function getTextWidth(text) {
+    probe.textContent = text;
+    return probe.scrollWidth;
+  }
+
+  if (lineCount === 1) {
+    const line = words.join(" ");
+    return getTextWidth(line) <= availableWidth ? [line] : null;
+  }
+
+  const candidates = [];
+
+  function collectLines(startIndex, remainingLines, currentLines) {
+    if (remainingLines === 1) {
+      candidates.push([...currentLines, words.slice(startIndex).join(" ")]);
+      return;
+    }
+
+    const lastBreak = words.length - remainingLines;
+
+    for (let breakIndex = startIndex; breakIndex <= lastBreak; breakIndex += 1) {
+      collectLines(
+        breakIndex + 1,
+        remainingLines - 1,
+        [...currentLines, words.slice(startIndex, breakIndex + 1).join(" ")]
+      );
+    }
+  }
+
+  collectLines(0, Math.min(lineCount, words.length), []);
+
+  const fittingCandidates = candidates
+    .map((lines) => {
+      const widths = lines.map(getTextWidth);
+      const maxWidth = Math.max(...widths);
+      const minWidth = Math.min(...widths);
+      const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+      const averageWidth = totalWidth / widths.length;
+      const balancePenalty = widths.reduce(
+        (sum, width) => sum + Math.abs(width - averageWidth),
+        0
+      );
+
+      return {
+        lines,
+        maxWidth,
+        score: balancePenalty * 4 + (maxWidth - minWidth) * 2 + maxWidth * 0.15,
+      };
+    })
+    .filter((candidate) => candidate.maxWidth <= availableWidth)
+    .sort((a, b) => a.score - b.score);
+
+  return fittingCandidates[0]?.lines ?? null;
+}
+
+function StagedTitle({
+  as: Tag = "h2",
+  children,
+  className = "",
+  mobileLineCount = 3,
+  tabletLineCount = 2,
+  desktopLineCount = 1,
+}) {
+  const titleRef = useRef(null);
+  const measureRef = useRef(null);
+  const [activeStage, setActiveStage] = useState("mobile");
+  const [measuredLines, setMeasuredLines] = useState({
+    mobile: createTitleLines(children, mobileLineCount),
+    tablet: createTitleLines(children, tabletLineCount),
+    desktop: createTitleLines(children, desktopLineCount),
+  });
+  const oneLine = createTitleLines(children, desktopLineCount);
+
+  useLayoutEffect(() => {
+    const titleElement = titleRef.current;
+    const measureElement = measureRef.current;
+
+    if (!titleElement || !measureElement) return undefined;
+
+    function updateLineCount() {
+      const containerElement = titleElement.parentElement ?? titleElement;
+      const availableWidth = Math.floor(containerElement.getBoundingClientRect().width) - 4;
+      const relaxedTwoLineWidth = availableWidth * 1.08;
+      const desktopLines = findFittingMeasuredTitleLines(
+        children,
+        desktopLineCount,
+        measureElement,
+        availableWidth
+      );
+      const tabletFittingLines = findFittingMeasuredTitleLines(
+        children,
+        tabletLineCount,
+        measureElement,
+        relaxedTwoLineWidth
+      );
+      const nextLines = {
+        desktop: desktopLines ?? createMeasuredTitleLines(children, desktopLineCount, measureElement, availableWidth),
+        tablet: tabletFittingLines ?? createMeasuredTitleLines(children, tabletLineCount, measureElement, availableWidth),
+        mobile: createMeasuredTitleLines(children, mobileLineCount, measureElement, availableWidth),
+      };
+
+      setMeasuredLines((current) => {
+        const currentValue = JSON.stringify(current);
+        const nextValue = JSON.stringify(nextLines);
+
+        return currentValue === nextValue ? current : nextLines;
+      });
+
+      const getMaxLineWidth = (lines) =>
+        Math.max(
+          ...lines.map((line) => {
+            const probe = measureElement.querySelector("[data-measure-probe]");
+            if (!probe) return Number.POSITIVE_INFINITY;
+            probe.textContent = line;
+            return probe.scrollWidth;
+          })
+        );
+
+      if (desktopLines) {
+        setActiveStage((current) => current === "desktop" ? current : "desktop");
+        return;
+      }
+
+      if (tabletFittingLines) {
+        setActiveStage((current) => current === "tablet" ? current : "tablet");
+        return;
+      }
+
+      setActiveStage((current) => current === "mobile" ? current : "mobile");
+    }
+
+    updateLineCount();
+
+    const resizeObserver = new ResizeObserver(updateLineCount);
+    resizeObserver.observe(titleElement);
+    if (titleElement.parentElement) {
+      resizeObserver.observe(titleElement.parentElement);
+    }
+    window.addEventListener("resize", updateLineCount);
+
+    document.fonts?.ready.then(updateLineCount);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateLineCount);
+    };
+  }, [children, desktopLineCount, mobileLineCount, tabletLineCount]);
+
+  return (
+    <Tag ref={titleRef} className={`staged-title ${className}`}>
+      <span
+        className={`staged-title-stage ${activeStage === "mobile" ? "is-active" : ""}`}
+      >
+        {measuredLines.mobile.map((line, index) => (
+          <span key={`${line}-${index}`} className="block whitespace-nowrap">{line}</span>
+        ))}
+      </span>
+      <span
+        className={`staged-title-stage ${activeStage === "tablet" ? "is-active" : ""}`}
+      >
+        {measuredLines.tablet.map((line, index) => (
+          <span key={`${line}-${index}`} className="block whitespace-nowrap">{line}</span>
+        ))}
+      </span>
+      <span
+        className={`staged-title-stage ${activeStage === "desktop" ? "is-active" : ""}`}
+      >
+        {measuredLines.desktop.map((line, index) => (
+          <span key={`${line}-${index}`} className="block whitespace-nowrap">{line}</span>
+        ))}
+      </span>
+
+      <span ref={measureRef} aria-hidden="true" className="staged-title-measure">
+        <span data-measure-probe className="block whitespace-nowrap" />
+        <span data-measure-stage="one">
+          {oneLine.map((line, index) => (
+            <span key={`measure-one-${line}-${index}`} className="block whitespace-nowrap">{line}</span>
+          ))}
+        </span>
+        <span data-measure-stage="tablet">
+          {measuredLines.tablet.map((line, index) => (
+            <span key={`measure-tablet-${line}-${index}`} className="block whitespace-nowrap">{line}</span>
+          ))}
+        </span>
+        <span data-measure-stage="mobile">
+          {measuredLines.mobile.map((line, index) => (
+            <span key={`measure-mobile-${line}-${index}`} className="block whitespace-nowrap">{line}</span>
+          ))}
+        </span>
+      </span>
+    </Tag>
+  );
+}
+
+function PageTitle({ children, className = "" }) {
+  return (
+    <StagedTitle
+      className={`mb-4 mt-8 max-w-full text-[clamp(34px,10vw,54px)] font-bold uppercase leading-[1.02] ${className}`}
+      mobileLineCount={3}
+      tabletLineCount={2}
+      desktopLineCount={1}
     >
-      <ArrowLeft size={22} strokeWidth={2.4} />
-    </Link>
+      {children}
+    </StagedTitle>
+  );
+}
+
+function DetailTitle({ children, className = "" }) {
+  const titleRef = useRef(null);
+  const [isSettling, setIsSettling] = useState(false);
+
+  useEffect(() => {
+    const titleElement = titleRef.current;
+
+    if (!titleElement) return undefined;
+
+    let timeoutId;
+    let previousHeight = titleElement.getBoundingClientRect().height;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const nextHeight = entry.contentRect.height;
+
+      if (Math.abs(nextHeight - previousHeight) < 1) return;
+
+      previousHeight = nextHeight;
+      setIsSettling(true);
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => setIsSettling(false), 800);
+    });
+
+    resizeObserver.observe(titleElement);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+    };
+  }, [children]);
+
+  return (
+    <h2
+      ref={titleRef}
+      className={`detail-title natural-title mt-2 max-w-full text-[clamp(34px,9vw,64px)] font-bold leading-[1.05] ${isSettling ? "is-settling" : ""} ${className}`}
+    >
+      {children}
+    </h2>
   );
 }
 
@@ -239,7 +616,15 @@ function FilmCard({ film }) {
       <img src={film.img} alt={film.title} className="h-52 w-full object-cover" />
       <div className="p-4">
         <p className="text-[15px] text-[#6b5948]">{film.year}</p>
-        <h4 className="mt-1 text-[24px] font-bold uppercase leading-tight">{film.title}</h4>
+        <StagedTitle
+          as="h4"
+          className="mt-1 text-[24px] font-bold uppercase leading-tight"
+          mobileLineCount={2}
+          tabletLineCount={2}
+          desktopLineCount={1}
+        >
+          {film.title}
+        </StagedTitle>
         <p className="mt-2 text-[17px] text-[#6b5948]">{film.role}</p>
       </div>
     </Link>
@@ -253,7 +638,15 @@ function EraCard({ era }) {
       className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
     >
       <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.year}</p>
-      <h3 className="mt-2 text-[28px] font-bold leading-tight">{era.era}</h3>
+      <StagedTitle
+        as="h3"
+        className="mt-2 text-[28px] font-bold leading-tight"
+        mobileLineCount={2}
+        tabletLineCount={2}
+        desktopLineCount={1}
+      >
+        {era.era}
+      </StagedTitle>
       <p className="mt-3 text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
     </Link>
   );
@@ -270,7 +663,15 @@ function InterviewItemCard({ eraSlug, item }) {
         <p className="text-[15px] text-[#6b5948]">
           {item.outlet} · {item.date}
         </p>
-        <h4 className="mt-2 text-[26px] font-bold leading-tight">{item.title}</h4>
+        <StagedTitle
+          as="h4"
+          className="mt-2 text-[26px] font-bold leading-tight"
+          mobileLineCount={2}
+          tabletLineCount={2}
+          desktopLineCount={1}
+        >
+          {item.title}
+        </StagedTitle>
         <p className="mt-4 text-[20px] leading-[1.5] text-[#5a4631]">“{item.quote}”</p>
       </div>
     </Link>
@@ -288,14 +689,20 @@ function GalleryCard({ item }) {
       <p className="mt-3 text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
         {item.date}
       </p>
-      <h4 className="mt-1 text-[18px] font-bold">{item.title}</h4>
+      <StagedTitle
+        as="h4"
+        className="mt-1 text-[18px] font-bold"
+        mobileLineCount={2}
+        tabletLineCount={2}
+        desktopLineCount={1}
+      >
+        {item.title}
+      </StagedTitle>
     </Link>
   );
 }
 
-function HeroImageDeck() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeCard, setActiveCard] = useState(null);
+function HeroImageDeck({ isOpen, setIsOpen, activeCard, setActiveCard }) {
   const [hearts, setHearts] = useState([]);
   const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
   const deckRef = useRef(null);
@@ -473,43 +880,15 @@ function HeroImageDeck() {
     <div key="desktop-hero-deck" className="hero-deck-fade hero-deck-stage relative w-full max-w-[1160px] overflow-visible">
       <div
         ref={deckRef}
-        className="hero-deck-inner absolute left-1/2 top-0 h-[700px] w-[1160px] origin-top cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0"
+        className="hero-deck-inner absolute isolate left-1/2 top-0 h-[700px] w-[1160px] origin-top cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0"
       >
-        <svg
-          aria-hidden="true"
-          className="pointer-events-none absolute top-[120px] z-0 h-[300px] overflow-visible transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{
-            left: "-620px",
-            width: `${mainLeft + cardWidth + 600}px`,
-          }}
-          viewBox="0 0 1180 300"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M 8 176 C 178 82 302 78 430 146 C 566 218 682 224 842 132 C 966 60 1072 48 1172 88"
-            fill="none"
-            stroke="#9cc9ff"
-            strokeLinecap="round"
-            strokeWidth="5"
-            opacity="0.74"
-          />
-          <path
-            d="M 8 204 C 184 112 306 108 438 174 C 574 244 700 252 856 164 C 978 94 1080 84 1172 120"
-            fill="none"
-            stroke="#9cc9ff"
-            strokeLinecap="round"
-            strokeWidth="5"
-            opacity="0.6"
-          />
-        </svg>
-
         {deckImages.map((item, index) => {
           const isActive = activeCard === index;
 
           return (
             <div
               key={item.slug}
-              className="absolute top-[28px] h-[620px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="absolute top-[28px] z-10 h-[620px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 left: `${getCardLeft(index)}px`,
                 width: `${getCardWidth(index)}px`,
@@ -620,10 +999,46 @@ function HeroImageDeck() {
 }
 
 function HomePage() {
+  const [isHeroDeckOpen, setIsHeroDeckOpen] = useState(false);
+  const [activeHeroCard, setActiveHeroCard] = useState(null);
+  const heroCardWidth = 520;
+  const heroCardPeek = 72;
+  const heroActiveCardLeft = 150;
+  const heroRightStackLeft = heroActiveCardLeft + heroCardWidth + heroCardPeek;
+  const heroMainLeft = isHeroDeckOpen ? heroRightStackLeft + 18 : 500;
+
   return (
     <Layout>
       <section className="relative mx-auto max-w-7xl px-6 pb-12 pt-6 md:px-10">
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]">
+        <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)] xl:grid-cols-[1fr_0.95fr]">
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute top-[220px] z-0 hidden h-[300px] overflow-visible text-[#9cc9ff] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] lg:block"
+            style={{
+              left: "calc(50% - 1180px)",
+              width: `${heroMainLeft + heroCardWidth + 600}px`,
+            }}
+            viewBox="0 0 1180 300"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M 8 176 C 178 82 302 78 430 146 C 566 218 682 224 842 132 C 966 60 1072 48 1172 88"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="5"
+              opacity="0.74"
+            />
+            <path
+              d="M 8 204 C 184 112 306 108 438 174 C 574 244 700 252 856 164 C 978 94 1080 84 1172 120"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="5"
+              opacity="0.6"
+            />
+          </svg>
+
           <div className="relative z-30">
             <svg
               aria-hidden="true"
@@ -658,6 +1073,7 @@ function HomePage() {
               to="/100-reasons"
               className="title-reveal relative z-10 block max-w-[clamp(18rem,52vw,36rem)] text-[clamp(48px,12.4vw,88px)] font-bold uppercase leading-[0.95] tracking-[-0.04em]"
             >
+              <span aria-hidden="true" className="absolute inset-0 z-0 block" />
               <svg
                 aria-hidden="true"
                 className="pointer-events-none absolute left-[0.055em] top-[1.93em] z-20 h-[0.72em] w-[0.72em] -translate-x-1/2 -translate-y-1/2 text-[#9cc9ff]"
@@ -678,7 +1094,7 @@ function HomePage() {
               <span className="block whitespace-nowrap">100 reasons</span>
               <span className="block whitespace-nowrap">to love</span>
               <span className="block whitespace-nowrap">Ryan Gosling</span>
-              <span aria-hidden="true" className="title-reveal-blue absolute inset-0 block text-[#6faef2]">
+              <span aria-hidden="true" className="title-reveal-blue pointer-events-none absolute inset-0 block text-[#6faef2]">
                 <span className="block whitespace-nowrap">100 reasons</span>
                 <span className="block whitespace-nowrap">to love</span>
                 <span className="block whitespace-nowrap">Ryan Gosling</span>
@@ -703,8 +1119,13 @@ function HomePage() {
             </p>
           </div>
 
-          <div className="relative z-10 flex justify-center">
-            <HeroImageDeck />
+          <div className="relative z-40 flex justify-center">
+            <HeroImageDeck
+              isOpen={isHeroDeckOpen}
+              setIsOpen={setIsHeroDeckOpen}
+              activeCard={activeHeroCard}
+              setActiveCard={setActiveHeroCard}
+            />
           </div>
         </div>
       </section>
@@ -761,8 +1182,8 @@ function FilmographyPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
-        <BackButton to="/" label="Back to Home" />
-        <h2 className="mb-8 mt-8 text-[38px] font-bold uppercase md:text-[54px]">Filmography</h2>
+        <BackButton to="/" label="Back to Home" icon={<Film />} />
+        <PageTitle className="mb-8">Filmography</PageTitle>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {films.map((film) => (
             <FilmCard key={film.slug} film={film} />
@@ -790,14 +1211,14 @@ function FilmDetailPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
-        <BackButton to="/filmography" label="Back to Filmography" />
+        <BackButton to="/filmography" label="Back to Filmography" icon={<Film />} />
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-          <img src={film.img} alt={film.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
+        <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <img src={film.img} alt={film.title} className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
 
           <div>
             <p className="text-[16px] text-[#6b5948]">{film.year}</p>
-            <h2 className="mt-2 text-[42px] font-bold uppercase leading-[1.02] md:text-[64px] md:leading-none">{film.title}</h2>
+            <DetailTitle className="uppercase md:leading-none">{film.title}</DetailTitle>
             <p className="mt-4 text-[20px] text-[#6faef2] md:text-[24px]">{film.role}</p>
             <p className="mt-8 max-w-2xl text-[19px] leading-[1.5] md:text-[22px]">{film.note}</p>
           </div>
@@ -810,9 +1231,9 @@ function FilmDetailPage() {
 function InterviewsPage() {
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/" label="Back to Home" />
-        <h2 className="mb-4 mt-8 text-[54px] font-bold uppercase">Interviews</h2>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" icon={<Quote />} />
+        <PageTitle>Interviews</PageTitle>
         <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
           Interviews are organised by film era, so that each group reflects a distinct phase in Ryan Gosling’s screen image, publicity, and performance style.
         </p>
@@ -823,7 +1244,15 @@ function InterviewsPage() {
               <div className="mb-6 flex items-end justify-between gap-6">
                 <div>
                   <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{era.year}</p>
-                  <h3 className="text-[38px] font-bold uppercase tracking-[-0.03em]">{era.era}</h3>
+                  <StagedTitle
+                    as="h3"
+                    className="text-[38px] font-bold uppercase tracking-[-0.03em]"
+                    mobileLineCount={2}
+                    tabletLineCount={2}
+                    desktopLineCount={1}
+                  >
+                    {era.era}
+                  </StagedTitle>
                   <p className="mt-3 max-w-3xl text-[18px] leading-[1.6] text-[#5a4631]">{era.description}</p>
                 </div>
 
@@ -855,7 +1284,7 @@ function InterviewEraPage() {
   if (!era) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Interview era not found.</p>
         </section>
       </Layout>
@@ -864,14 +1293,14 @@ function InterviewEraPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/interviews" label="Back to Interviews" />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/interviews" label="Back to Interviews" icon={<Quote />} />
 
         <div className="mt-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             {era.year} · {era.film}
           </p>
-          <h2 className="mt-2 text-[54px] font-bold uppercase">{era.era}</h2>
+          <DetailTitle className="uppercase">{era.era}</DetailTitle>
           <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
             {era.description}
           </p>
@@ -895,7 +1324,7 @@ function InterviewDetailPage() {
   if (!era || !interview) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Interview not found.</p>
         </section>
       </Layout>
@@ -904,19 +1333,19 @@ function InterviewDetailPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to={`/interviews/${era.slug}`} label={`Back to ${era.era}`} />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to={`/interviews/${era.slug}`} label={`Back to ${era.era}`} icon={<Quote />} />
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
           <img
             src={interview.image}
             alt={interview.title}
-            className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+            className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
           />
 
-          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
             <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.era}</p>
-            <h2 className="mt-2 text-[44px] font-bold leading-tight">{interview.title}</h2>
+            <DetailTitle>{interview.title}</DetailTitle>
             <p className="mt-3 text-[18px] text-[#6b5948]">
               {interview.outlet} · {interview.date}
             </p>
@@ -939,9 +1368,9 @@ function GalleryPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/" label="Back to Home" />
-        <h2 className="mb-4 mt-8 text-[54px] font-bold uppercase">Gallery</h2>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" icon={<Camera />} />
+        <PageTitle>Gallery</PageTitle>
         <p className="mb-8 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
           Browse archive images by date, or filter the gallery by year.
         </p>
@@ -986,7 +1415,7 @@ function GalleryDetailPage() {
   if (!item) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Image not found.</p>
         </section>
       </Layout>
@@ -995,15 +1424,15 @@ function GalleryDetailPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/gallery" label="Back to Gallery" />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/gallery" label="Back to Gallery" icon={<Camera />} />
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_0.9fr]">
-          <img src={item.img} alt={item.title} className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
+        <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[1fr_0.9fr]">
+          <img src={item.img} alt={item.title} className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]" />
 
-          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
             <p className="text-[16px] text-[#6b5948]">Gallery Entry · {item.date}</p>
-            <h2 className="mt-2 text-[44px] font-bold leading-tight">{item.title}</h2>
+            <DetailTitle>{item.title}</DetailTitle>
             <p className="mt-8 text-[22px] leading-[1.6] text-[#5a4631]">{item.caption}</p>
             <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[14px] font-medium">
               <Star size={16} /> Archive image
@@ -1017,11 +1446,11 @@ function GalleryDetailPage() {
 function ReasonsPage() {
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/" label="Back to Home" />
-        <h2 className="mb-4 mt-8 text-[54px] font-bold uppercase">
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" icon={<Sparkles />} />
+        <PageTitle>
           100 Reasons to Love Ryan Gosling
-        </h2>
+        </PageTitle>
 
         <p className="mb-10 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
           A directory-style archive of 100 reasons. Each entry can be opened and edited later.
@@ -1038,9 +1467,15 @@ function ReasonsPage() {
                 Reason {reason.number}
               </p>
 
-              <h3 className="mt-2 text-[24px] font-bold leading-tight">
+              <StagedTitle
+                as="h3"
+                className="mt-2 text-[24px] font-bold leading-tight"
+                mobileLineCount={2}
+                tabletLineCount={2}
+                desktopLineCount={1}
+              >
                 {reason.title}
-              </h3>
+              </StagedTitle>
 
               <p className="mt-3 text-[16px] leading-[1.5] text-[#5a4631]">
                 {reason.summary}
@@ -1060,7 +1495,7 @@ function ReasonDetailPage() {
   if (!reason) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Reason not found.</p>
         </section>
       </Layout>
@@ -1069,17 +1504,17 @@ function ReasonDetailPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/100-reasons" label="Back to 100 Reasons" />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/100-reasons" label="Back to 100 Reasons" icon={<Sparkles />} />
 
-        <div className="mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             Reason {reason.number}
           </p>
 
-          <h2 className="mt-2 text-[54px] font-bold uppercase leading-tight">
+          <DetailTitle className="uppercase">
             {reason.title}
-          </h2>
+          </DetailTitle>
 
           <p className="mt-8 max-w-3xl text-[22px] leading-[1.7] text-[#5a4631]">
             {reason.content}
@@ -1094,10 +1529,10 @@ function HandcraftPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
-        <BackButton to="/" label="Back to Home" />
-        <h2 className="mb-4 mt-8 text-[38px] font-bold uppercase md:text-[54px]">
+        <BackButton to="/" label="Back to Home" icon={<Star />} />
+        <PageTitle>
           Handcraft
-        </h2>
+        </PageTitle>
 
         <p className="mb-10 max-w-3xl text-[20px] leading-[1.6] text-[#5a4631] md:text-[22px]">
           A place for handcraft plans, sketches, and archive-style notes.
@@ -1113,9 +1548,15 @@ function HandcraftPage() {
               <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
                 {item.eyebrow}
               </p>
-              <h3 className="mt-2 text-[30px] font-bold uppercase md:text-[38px]">
+              <StagedTitle
+                as="h3"
+                className="mt-2 text-[30px] font-bold uppercase md:text-[38px]"
+                mobileLineCount={2}
+                tabletLineCount={2}
+                desktopLineCount={1}
+              >
                 {item.title}
-              </h3>
+              </StagedTitle>
               <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">
                 {item.summary}
               </p>
@@ -1144,15 +1585,15 @@ function HandcraftDetailPage() {
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
-        <BackButton to="/handcraft" label="Back to Handcraft" />
+        <BackButton to="/handcraft" label="Back to Handcraft" icon={<Star />} />
 
-        <div className="mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             {item.eyebrow}
           </p>
-          <h2 className="mt-2 text-[38px] font-bold uppercase leading-tight md:text-[54px]">
+          <DetailTitle className="uppercase">
             {item.title}
-          </h2>
+          </DetailTitle>
           <p className="mt-8 max-w-3xl text-[20px] leading-[1.7] text-[#5a4631]">
             {item.content}
           </p>
@@ -1171,12 +1612,9 @@ function LegacyHandcraftRedirect() {
 function SNLPage() {
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/" label="Back to Home" />
-        <div className="mb-8 mt-8 flex items-center gap-3">
-          <Tv className="text-[#6faef2]" />
-          <h2 className="text-[54px] font-bold uppercase">Saturday Night Live</h2>
-        </div>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" icon={<Tv />} />
+        <PageTitle className="mb-8">Saturday Night Live</PageTitle>
 
         <p className="mb-12 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
           SNL archive entries are organised by season first, then divided into individual episodes.
@@ -1190,7 +1628,15 @@ function SNLPage() {
               className="rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
             >
               <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
-              <h3 className="mt-2 text-[32px] font-bold uppercase">{season.season}</h3>
+              <StagedTitle
+                as="h3"
+                className="mt-2 text-[32px] font-bold uppercase"
+                mobileLineCount={2}
+                tabletLineCount={2}
+                desktopLineCount={1}
+              >
+                {season.season}
+              </StagedTitle>
               <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">{season.description}</p>
               <p className="mt-5 text-[16px] text-[#6b5948]">{season.episodes.length} episodes</p>
             </Link>
@@ -1208,7 +1654,7 @@ function SNLSeasonPage() {
   if (!season) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Season not found.</p>
         </section>
       </Layout>
@@ -1217,12 +1663,12 @@ function SNLSeasonPage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to="/saturday-night-live" label="Back to Saturday Night Live" />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/saturday-night-live" label="Back to Saturday Night Live" icon={<Tv />} />
 
         <div className="mt-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
-          <h2 className="mt-2 text-[54px] font-bold uppercase">{season.season}</h2>
+          <DetailTitle className="uppercase">{season.season}</DetailTitle>
           <p className="mt-6 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
             {season.description}
           </p>
@@ -1240,7 +1686,15 @@ function SNLSeasonPage() {
                 <p className="text-[15px] text-[#6b5948]">
                   {episode.episode} · {episode.date}
                 </p>
-                <h3 className="mt-2 text-[26px] font-bold leading-tight">{episode.title}</h3>
+                <StagedTitle
+                  as="h3"
+                  className="mt-2 text-[26px] font-bold leading-tight"
+                  mobileLineCount={2}
+                  tabletLineCount={2}
+                  desktopLineCount={1}
+                >
+                  {episode.title}
+                </StagedTitle>
                 <p className="mt-3 text-[17px] text-[#5a4631]">Host: {episode.host}</p>
               </div>
             </Link>
@@ -1259,7 +1713,7 @@ function SNLEpisodePage() {
   if (!season || !episode) {
     return (
       <Layout>
-        <section className="mx-auto max-w-7xl px-10 py-20">
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
           <p className="text-[22px]">Episode not found.</p>
         </section>
       </Layout>
@@ -1268,21 +1722,21 @@ function SNLEpisodePage() {
 
   return (
     <Layout>
-      <section className="mx-auto max-w-7xl px-10 pb-16 pt-4">
-        <BackButton to={`/saturday-night-live/${season.slug}`} label={`Back to ${season.season}`} />
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to={`/saturday-night-live/${season.slug}`} label={`Back to ${season.season}`} icon={<Tv />} />
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
           <img
             src={episode.image}
             alt={episode.title}
-            className="w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+            className="detail-media w-full rounded-[2rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
           />
 
-          <div className="rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
             <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">
               {season.season} · {episode.episode}
             </p>
-            <h2 className="mt-2 text-[44px] font-bold leading-tight">{episode.title}</h2>
+            <DetailTitle>{episode.title}</DetailTitle>
             <p className="mt-3 text-[18px] text-[#6b5948]">{episode.date}</p>
 
             <div className="mt-8 space-y-2 text-[20px] leading-[1.6] text-[#5a4631]">
