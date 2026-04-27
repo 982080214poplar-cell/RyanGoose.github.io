@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
 import { Routes, Route, Link, Navigate, useParams, useLocation } from "react-router-dom";
 import films from "./data/films.json";
@@ -954,6 +955,7 @@ function HeroImageDeck({
   activeCard,
   setActiveCard,
   isDesktop,
+  isTransitioning,
   layoutShift,
 }) {
   const [hearts, setHearts] = useState([]);
@@ -1015,9 +1017,8 @@ function HeroImageDeck({
   }
 
   function getCardZ(index) {
-    // 关键：不要让 activeCard 自动跑到最上面
-    // 保持后面的牌盖住前面的牌，才像真实叠牌
-    return 30 + index;
+    // 卡堆整体要压在主图细边框之上，避免边框“浮”在卡牌前面。
+    return 230 + index;
   }
 
   function getHitboxLeft(index) {
@@ -1042,7 +1043,7 @@ function HeroImageDeck({
           <div
             onClick={handleClick}
             onDoubleClick={() => setIsOpen((current) => !current)}
-            className="hero-main-card relative z-10 rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            className="hero-main-card relative z-10 rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)]"
           >
             <div className="overflow-hidden rounded-[2.5rem]">
               <img
@@ -1105,7 +1106,7 @@ function HeroImageDeck({
     >
       <div
         ref={deckRef}
-        className="hero-deck-inner absolute isolate left-1/2 top-0 h-[700px] w-[1160px] origin-top cursor-pointer select-none transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] xl:z-0"
+        className="hero-deck-inner absolute isolate left-1/2 top-0 h-[700px] w-[1160px] origin-top cursor-pointer select-none xl:z-0"
       >
         {deckImages.map((item, index) => {
           const isActive = activeCard === index;
@@ -1180,11 +1181,17 @@ function HeroImageDeck({
         )}
 
         <div
-          className="hero-main-visual absolute top-0 z-[180] h-[648px] w-[560px] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+          className={`hero-main-visual absolute top-0 z-[220] h-[648px] w-[560px] ${
+            isTransitioning ? "hero-main-visual-static" : ""
+          }`}
           style={{ left: `${mainLeft - 20}px` }}
         >
           <div
-            className="hero-main-card absolute left-[20px] top-[28px] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            className="hero-main-outline pointer-events-none absolute left-0 top-[28px] z-[1] h-[620px] w-[560px] rounded-[3rem] border-2 border-[#3b2a1a]/15"
+          />
+
+          <div
+            className="hero-main-card absolute left-[20px] top-[28px] z-[2] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)]"
             onClick={handleClick}
             onDoubleClick={() => {
               setIsOpen((current) => !current);
@@ -1199,8 +1206,6 @@ function HeroImageDeck({
               />
             </div>
           </div>
-
-          <div className="pointer-events-none absolute left-0 top-0 h-[620px] w-[560px] rounded-[3rem] border-2 border-[#3b2a1a]/15" />
         </div>
 
         {hearts.map((heart) => (
@@ -1221,55 +1226,6 @@ function HeroImageDeck({
   );
 }
 
-function HeroTransitionOverlay({ transition }) {
-  if (!transition) return null;
-
-  const { fromMode, fromSnapshot, phase, toMode, toSnapshot } = transition;
-  const stageMode = phase === "out" ? fromMode : toMode;
-  const phaseClass = `hero-motion-${phase}-${toMode}`;
-  const activeSnapshot = phase === "out" ? fromSnapshot : toSnapshot;
-  if (!activeSnapshot) return null;
-
-  const { mainHtml, mainRect, shieldHtml, shieldRect, waveHtml, wavePlacement, waveRect } = activeSnapshot;
-
-  return (
-    <div aria-hidden="true" className={`hero-motion-overlay hero-motion-mode-${stageMode} ${phaseClass}`}>
-      <div
-        className="hero-motion-main"
-        style={{
-          height: `${mainRect.height}px`,
-          left: `${mainRect.left}px`,
-          top: `${mainRect.top}px`,
-          width: `${mainRect.width}px`,
-        }}
-        dangerouslySetInnerHTML={{ __html: mainHtml }}
-      />
-      <div
-        className={`hero-motion-wave hero-motion-wave-${wavePlacement}`}
-        style={{
-          height: `${waveRect.height}px`,
-          left: `${waveRect.left}px`,
-          top: `${waveRect.top}px`,
-          width: `${waveRect.width}px`,
-        }}
-        dangerouslySetInnerHTML={{ __html: waveHtml }}
-      />
-      {shieldRect && shieldHtml && (
-        <div
-          className={`hero-motion-shield hero-motion-shield-${wavePlacement}`}
-          style={{
-            height: `${shieldRect.height}px`,
-            left: `${shieldRect.left}px`,
-            top: `${shieldRect.top}px`,
-            width: `${shieldRect.width}px`,
-          }}
-          dangerouslySetInnerHTML={{ __html: shieldHtml }}
-        />
-      )}
-    </div>
-  );
-}
-
 function sanitizeSnapshotNode(node) {
   const clone = node.cloneNode(true);
   clone.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
@@ -1280,62 +1236,111 @@ function sanitizeSnapshotNode(node) {
   return clone;
 }
 
-function createMotionSnapshot(heroSectionElement, mode) {
-  if (!heroSectionElement) return null;
+function HeroTransitionOverlay({ transition }) {
+  if (!transition) return null;
 
-  const wavePlacement = mode === "desktop" ? "top" : "bottom";
-  const mainElement = heroSectionElement.querySelector(".hero-main-visual");
-  const waveElement = heroSectionElement.querySelector(`.hero-wave-field-${wavePlacement}`);
-  const shieldElement = heroSectionElement.querySelector(`.hero-wave-shield-${wavePlacement}`);
-  if (!mainElement || !waveElement) return null;
+  const { fromMode, fromSnapshot, phase, toMode, toSnapshot } = transition;
+  const isOutPhase = phase.startsWith("out");
+  const isPrepPhase = phase.endsWith("prep");
+  const stageMode = isOutPhase ? fromMode : toMode;
+  const phaseClass = `hero-motion-${isOutPhase ? "out" : "in"}-${toMode}${isPrepPhase ? " hero-motion-prep" : ""}`;
+  const activeSnapshot = isOutPhase ? fromSnapshot : toSnapshot;
+  if (!activeSnapshot) return null;
 
-  const mainRect = mainElement.getBoundingClientRect();
-  const waveRect = waveElement.getBoundingClientRect();
-  const shieldRect = shieldElement?.getBoundingClientRect();
-  const sectionRect = heroSectionElement.getBoundingClientRect();
-  const mainClone = sanitizeSnapshotNode(mainElement);
-  const waveClone = sanitizeSnapshotNode(waveElement);
-  const shieldClone = shieldElement ? sanitizeSnapshotNode(shieldElement) : null;
+  const { bottomWaveSnapshot, mainHtml, mainRect, topWaveSnapshot } = activeSnapshot;
+  const primaryWaveSnapshot =
+    toMode === "mobile"
+      ? isOutPhase
+        ? topWaveSnapshot
+        : bottomWaveSnapshot
+      : isOutPhase
+        ? bottomWaveSnapshot
+        : topWaveSnapshot;
+  const waveSnapshot = primaryWaveSnapshot ?? topWaveSnapshot ?? bottomWaveSnapshot ?? null;
 
-  let normalizedShieldRect = null;
-  let normalizedShieldHtml = "";
-  if (shieldRect && shieldRect.width > 1 && shieldRect.height > 1 && shieldClone) {
-    normalizedShieldRect = {
-      height: shieldRect.height,
-      left: shieldRect.left,
-      top: shieldRect.top,
-      width: shieldRect.width,
-    };
-    normalizedShieldHtml = shieldClone.outerHTML;
-  } else {
-    const fallbackLeft = mainRect.left + mainRect.width * 0.5;
-    normalizedShieldRect = {
-      height: Math.max(1, waveRect.height + 84),
-      left: fallbackLeft,
-      top: waveRect.top - 42,
-      width: Math.max(1, sectionRect.right - fallbackLeft + 180),
-    };
-    normalizedShieldHtml = `<div class="hero-wave-shield-fallback"></div>`;
+  return (
+    <div aria-hidden="true" className={`hero-motion-overlay-main hero-motion-mode-${stageMode} ${phaseClass}`}>
+      {waveSnapshot?.html && (
+        <div
+          className="hero-motion-wave"
+          style={{
+            height: `${waveSnapshot.rect.height}px`,
+            left: `${waveSnapshot.rect.left}px`,
+            top: `${waveSnapshot.rect.top}px`,
+            width: `${waveSnapshot.rect.width}px`,
+          }}
+          dangerouslySetInnerHTML={{ __html: waveSnapshot.html }}
+        />
+      )}
+
+      <div
+        className="hero-motion-main"
+        style={{
+          "--hero-main-natural-height": `${mainRect.naturalHeight}px`,
+          "--hero-main-natural-width": `${mainRect.naturalWidth}px`,
+          "--hero-main-scale-x": `${mainRect.scaleX}`,
+          "--hero-main-scale-y": `${mainRect.scaleY}`,
+          height: `${mainRect.height}px`,
+          left: `${mainRect.left}px`,
+          top: `${mainRect.top}px`,
+          width: `${mainRect.width}px`,
+        }}
+        dangerouslySetInnerHTML={{ __html: mainHtml }}
+      />
+    </div>
+  );
+}
+
+function isSnapshotModeConsistent(snapshot, mode) {
+  if (!snapshot?.mainRect) return false;
+
+  const { width, height } = snapshot.mainRect;
+  if (mode === "desktop") {
+    return width > 390 && width < 470 && height > 470 && height < 560;
   }
 
+  return width >= 430 && width < 545 && height >= 520 && height < 690;
+}
+
+function createMotionSnapshot(heroSectionElement) {
+  if (!heroSectionElement) return null;
+  const mainElement = heroSectionElement.querySelector(".hero-main-visual");
+  if (!mainElement) return null;
+  const topWaveElement = heroSectionElement.querySelector(".hero-wave-field-top");
+  const bottomWaveElement = heroSectionElement.querySelector(".hero-wave-field-bottom");
+  const mainRect = mainElement.getBoundingClientRect();
+  const naturalWidth = Math.max(1, mainElement.offsetWidth || Math.round(mainRect.width));
+  const naturalHeight = Math.max(1, mainElement.offsetHeight || Math.round(mainRect.height));
+  const mainClone = sanitizeSnapshotNode(mainElement);
+
+  const topWaveSnapshot = topWaveElement
+    ? {
+        html: sanitizeSnapshotNode(topWaveElement).outerHTML,
+        rect: topWaveElement.getBoundingClientRect(),
+      }
+    : null;
+
+  const bottomWaveSnapshot = bottomWaveElement
+    ? {
+        html: sanitizeSnapshotNode(bottomWaveElement).outerHTML,
+        rect: bottomWaveElement.getBoundingClientRect(),
+      }
+    : null;
+
   return {
+    bottomWaveSnapshot,
     mainHtml: mainClone.outerHTML,
     mainRect: {
       height: mainRect.height,
       left: mainRect.left,
+      naturalHeight,
+      naturalWidth,
+      scaleX: mainRect.width / naturalWidth,
+      scaleY: mainRect.height / naturalHeight,
       top: mainRect.top,
       width: mainRect.width,
     },
-    shieldHtml: normalizedShieldHtml,
-    shieldRect: normalizedShieldRect,
-    waveHtml: waveClone.outerHTML,
-    wavePlacement,
-    waveRect: {
-      height: waveRect.height,
-      left: waveRect.left,
-      top: waveRect.top,
-      width: waveRect.width,
-    },
+    topWaveSnapshot,
   };
 }
 
@@ -1345,10 +1350,7 @@ function isValidMotionSnapshot(snapshot) {
   return (
     snapshot.mainRect?.width > 0 &&
     snapshot.mainRect?.height > 0 &&
-    snapshot.waveRect?.width > 0 &&
-    snapshot.waveRect?.height > 0 &&
-    Boolean(snapshot.mainHtml) &&
-    Boolean(snapshot.waveHtml)
+    Boolean(snapshot.mainHtml)
   );
 }
 
@@ -1361,34 +1363,73 @@ function waitForFrames(count, callback) {
   requestAnimationFrame(() => waitForFrames(count - 1, callback));
 }
 
-function captureMotionSnapshotWithRetry(sectionElement, mode, attempts, onReady) {
-  const snapshot = createMotionSnapshot(sectionElement, mode);
+function areSnapshotsClose(a, b, tolerance = 1.5) {
+  if (!a?.mainRect || !b?.mainRect) return false;
 
-  if (isValidMotionSnapshot(snapshot) || attempts <= 0) {
-    onReady(snapshot);
+  return (
+    Math.abs(a.mainRect.width - b.mainRect.width) <= tolerance &&
+    Math.abs(a.mainRect.height - b.mainRect.height) <= tolerance &&
+    Math.abs(a.mainRect.left - b.mainRect.left) <= tolerance &&
+    Math.abs(a.mainRect.top - b.mainRect.top) <= tolerance
+  );
+}
+
+function captureMotionSnapshotWithRetry(sectionElement, mode, attempts, onReady) {
+  const first = createMotionSnapshot(sectionElement);
+  const firstReady = isValidMotionSnapshot(first) && isSnapshotModeConsistent(first, mode);
+
+  if (!firstReady) {
+    if (attempts <= 0) {
+      onReady(null);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      captureMotionSnapshotWithRetry(sectionElement, mode, attempts - 1, onReady);
+    });
     return;
   }
 
-  requestAnimationFrame(() => {
-    captureMotionSnapshotWithRetry(sectionElement, mode, attempts - 1, onReady);
+  waitForFrames(2, () => {
+    const second = createMotionSnapshot(sectionElement);
+    const secondReady = isValidMotionSnapshot(second) && isSnapshotModeConsistent(second, mode);
+
+    if (secondReady && areSnapshotsClose(first, second)) {
+      onReady(second);
+      return;
+    }
+
+    if (attempts <= 0) {
+      onReady(null);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      captureMotionSnapshotWithRetry(sectionElement, mode, attempts - 1, onReady);
+    });
   });
 }
 
 function HomePage() {
   const heroSectionRef = useRef(null);
   const heroGridRef = useRef(null);
-  const lastHeroRectsRef = useRef(null);
   const [isHeroDeckOpen, setIsHeroDeckOpen] = useState(false);
   const [activeHeroCard, setActiveHeroCard] = useState(null);
   const [heroMode, setHeroMode] = useState(() =>
     window.innerWidth >= 1024 ? "desktop" : "mobile"
   );
   const [heroMotionTick, setHeroMotionTick] = useState(0);
-  const [heroShieldVars, setHeroShieldVars] = useState({});
   const [heroTransition, setHeroTransition] = useState(null);
+  const stableSnapshotsRef = useRef({
+    desktop: null,
+    mobile: null,
+  });
 
   useEffect(() => {
     const BREAKPOINT = 1024;
+    const OUT_PHASE_MS = 700;
+    const OUT_SWITCH_MS = 690;
+    const IN_PHASE_MS = 800;
     const mediaQuery = window.matchMedia(`(min-width: ${BREAKPOINT}px)`);
     let outTimer;
     let inTimer;
@@ -1421,13 +1462,13 @@ function HomePage() {
     }
 
     function startModeSwitch(nextMode) {
-      if (nextMode === currentMode) {
-        pendingMode = "";
+      if (isAnimating) {
+        pendingMode = nextMode;
         return;
       }
 
-      if (isAnimating) {
-        pendingMode = nextMode;
+      if (nextMode === currentMode) {
+        pendingMode = "";
         return;
       }
 
@@ -1437,7 +1478,11 @@ function HomePage() {
       clearTransitionTimers();
       setHeroMotionTick((current) => current + 1);
 
-      captureMotionSnapshotWithRetry(heroSectionRef.current, currentMode, 8, (fromSnapshot) => {
+      captureMotionSnapshotWithRetry(heroSectionRef.current, currentMode, 20, (strictFromSnapshot) => {
+        runSwitch(strictFromSnapshot);
+      });
+
+      function runSwitch(fromSnapshot) {
         if (isDisposed || token !== transitionId) return;
 
         if (!isValidMotionSnapshot(fromSnapshot)) {
@@ -1449,19 +1494,46 @@ function HomePage() {
         setHeroTransition({
           fromMode: currentMode,
           fromSnapshot,
-          phase: "out",
+          phase: "out-prep",
           toMode: nextMode,
           toSnapshot: null,
         });
 
-        outTimer = window.setTimeout(() => {
+        waitForFrames(1, () => {
           if (isDisposed || token !== transitionId) return;
 
-          setHeroMode(nextMode);
-          waitForFrames(2, () => {
+          setHeroTransition({
+            fromMode: currentMode,
+            fromSnapshot,
+            phase: "out",
+            toMode: nextMode,
+            toSnapshot: null,
+          });
+
+          outTimer = window.setTimeout(() => {
             if (isDisposed || token !== transitionId) return;
 
-            captureMotionSnapshotWithRetry(heroSectionRef.current, nextMode, 10, (toSnapshot) => {
+            flushSync(() => {
+              setHeroMode(nextMode);
+            });
+
+            if (isDisposed || token !== transitionId) return;
+
+            const immediateToSnapshot = createMotionSnapshot(heroSectionRef.current);
+            const immediateReady =
+              isValidMotionSnapshot(immediateToSnapshot) &&
+              isSnapshotModeConsistent(immediateToSnapshot, nextMode);
+
+            if (immediateReady) {
+              startInPhase(immediateToSnapshot);
+              return;
+            }
+
+            captureMotionSnapshotWithRetry(heroSectionRef.current, nextMode, 8, (strictToSnapshot) => {
+              startInPhase(strictToSnapshot);
+            });
+
+            function startInPhase(toSnapshot) {
               if (isDisposed || token !== transitionId) return;
 
               if (!isValidMotionSnapshot(toSnapshot)) {
@@ -1472,16 +1544,28 @@ function HomePage() {
               setHeroTransition({
                 fromMode: currentMode,
                 fromSnapshot,
-                phase: "in",
+                phase: "in-prep",
                 toMode: nextMode,
                 toSnapshot,
               });
 
-              inTimer = window.setTimeout(() => finishSwitch(nextMode, token), 760);
-            });
-          });
-        }, 360);
-      });
+              waitForFrames(1, () => {
+                if (isDisposed || token !== transitionId) return;
+
+                setHeroTransition({
+                  fromMode: currentMode,
+                  fromSnapshot,
+                  phase: "in",
+                  toMode: nextMode,
+                  toSnapshot,
+                });
+
+                inTimer = window.setTimeout(() => finishSwitch(nextMode, token), IN_PHASE_MS);
+              });
+            }
+          }, OUT_SWITCH_MS);
+        });
+      }
     }
 
     function handleBreakpointChange(event) {
@@ -1504,86 +1588,23 @@ function HomePage() {
     if (!sectionElement) return undefined;
 
     let animationFrame;
-    let trackingFrame;
-    const timeoutIds = [];
 
-    function updateShield() {
-      const mainCard = sectionElement.querySelector(".hero-main-card");
-      const mainVisual = sectionElement.querySelector(".hero-main-visual");
-      const topWave = sectionElement.querySelector(".hero-wave-field-top");
-      const bottomWave = sectionElement.querySelector(".hero-wave-field-bottom");
-      if (!mainCard || !mainVisual) return;
-
-      const sectionRect = sectionElement.getBoundingClientRect();
-      const mainRect = mainVisual.getBoundingClientRect();
-      const topRect = topWave?.getBoundingClientRect();
-      const bottomRect = bottomWave?.getBoundingClientRect();
-      const activeWaveRect = heroMode === "desktop" ? topRect : bottomRect;
-      const shieldLeft = mainRect.left + mainRect.width * 0.5 - sectionRect.left;
-      const shieldWidth = sectionRect.right - (sectionRect.left + shieldLeft) + 180;
-      const nextVars = {
-        "--hero-shield-left": `${Math.round(shieldLeft)}px`,
-        "--hero-shield-width": `${Math.round(shieldWidth)}px`,
-        "--hero-shield-top-top": `${Math.round((topRect?.top ?? mainRect.top) - sectionRect.top - 42)}px`,
-        "--hero-shield-top-height": `${Math.round((topRect?.height ?? 220) + 84)}px`,
-        "--hero-shield-bottom-top": `${Math.round((bottomRect?.top ?? mainRect.top) - sectionRect.top - 42)}px`,
-        "--hero-shield-bottom-height": `${Math.round((bottomRect?.height ?? 220) + 84)}px`,
-      };
-
-      setHeroShieldVars((current) => {
-        if (
-          current["--hero-shield-left"] === nextVars["--hero-shield-left"] &&
-          current["--hero-shield-width"] === nextVars["--hero-shield-width"] &&
-          current["--hero-shield-top-top"] === nextVars["--hero-shield-top-top"] &&
-          current["--hero-shield-top-height"] === nextVars["--hero-shield-top-height"] &&
-          current["--hero-shield-bottom-top"] === nextVars["--hero-shield-bottom-top"] &&
-          current["--hero-shield-bottom-height"] === nextVars["--hero-shield-bottom-height"]
-        ) {
-          return current;
-        }
-
-        return nextVars;
-      });
-
-      if (!heroTransition && activeWaveRect) {
-        lastHeroRectsRef.current = {
-          cardRect: {
-            height: mainRect.height,
-            left: mainRect.left,
-            top: mainRect.top,
-            width: mainRect.width,
-          },
-          cloneHtml: mainVisual.cloneNode(true).outerHTML,
-          waveRect: {
-            height: activeWaveRect.height,
-            left: activeWaveRect.left,
-            top: activeWaveRect.top,
-            width: activeWaveRect.width,
-          },
-        };
+    function refreshStableSnapshot() {
+      if (heroTransition) return;
+      const strictSnapshot = createMotionSnapshot(sectionElement);
+      if (isValidMotionSnapshot(strictSnapshot)) {
+        stableSnapshotsRef.current[heroMode] = strictSnapshot;
       }
     }
 
-    function scheduleUpdate() {
+    function scheduleRefresh() {
       window.cancelAnimationFrame(animationFrame);
-      animationFrame = window.requestAnimationFrame(updateShield);
+      animationFrame = window.requestAnimationFrame(refreshStableSnapshot);
     }
 
-    function trackDuringMotion(startTime = performance.now()) {
-      updateShield();
+    scheduleRefresh();
 
-      if (performance.now() - startTime > 1350) return;
-
-      trackingFrame = window.requestAnimationFrame(() => trackDuringMotion(startTime));
-    }
-
-    scheduleUpdate();
-    trackDuringMotion();
-    [120, 420, 780, 1120, 1360].forEach((delay) => {
-      timeoutIds.push(window.setTimeout(scheduleUpdate, delay));
-    });
-
-    const resizeObserver = new ResizeObserver(scheduleUpdate);
+    const resizeObserver = new ResizeObserver(scheduleRefresh);
     resizeObserver.observe(sectionElement);
 
     const mainCard = sectionElement.querySelector(".hero-main-card");
@@ -1591,14 +1612,12 @@ function HomePage() {
       resizeObserver.observe(mainCard);
     }
 
-    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("resize", scheduleRefresh);
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
-      window.cancelAnimationFrame(trackingFrame);
-      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
       resizeObserver.disconnect();
-      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("resize", scheduleRefresh);
     };
   }, [heroMode, heroMotionTick, heroTransition, isHeroDeckOpen, activeHeroCard]);
 
@@ -1606,10 +1625,9 @@ function HomePage() {
     <Layout>
       <section
         ref={heroSectionRef}
-        style={heroShieldVars}
         className={`relative mx-auto max-w-7xl overflow-visible px-6 pb-12 pt-6 md:px-10 ${
           isHeroDeckOpen ? "hero-is-open" : ""
-        } ${heroTransition ? "hero-is-transitioning" : ""}`}
+        } ${heroTransition ? "hero-is-transitioning" : ""} z-20`}
       >
         {["top", "bottom"].map((placement) => (
           <svg
@@ -1625,7 +1643,8 @@ function HomePage() {
               stroke="currentColor"
               strokeLinecap="round"
               strokeWidth="5"
-              opacity="0.64"
+              opacity="0.56"
+              vectorEffect="non-scaling-stroke"
             />
             <path
               d={HERO_WAVE_BOTTOM_PATH}
@@ -1633,13 +1652,11 @@ function HomePage() {
               stroke="currentColor"
               strokeLinecap="round"
               strokeWidth="5"
-              opacity="0.48"
+              opacity="0.56"
+              vectorEffect="non-scaling-stroke"
             />
           </svg>
         ))}
-
-        <div aria-hidden="true" className="hero-wave-shield hero-wave-shield-top pointer-events-none absolute" />
-        <div aria-hidden="true" className="hero-wave-shield hero-wave-shield-bottom pointer-events-none absolute" />
 
         <div
           ref={heroGridRef}
@@ -1708,6 +1725,7 @@ function HomePage() {
               activeCard={activeHeroCard}
               setActiveCard={setActiveHeroCard}
               isDesktop={heroMode === "desktop"}
+              isTransitioning={Boolean(heroTransition)}
               layoutShift=""
             />
           </div>
