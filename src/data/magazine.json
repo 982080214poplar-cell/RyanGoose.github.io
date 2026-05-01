@@ -1,0 +1,18 @@
+[
+  {
+    "slug": "cover-stories",
+    "title": "Cover Stories",
+    "eyebrow": "Magazine 01",
+    "year": "Archive",
+    "summary": "A page for magazine covers, long-form profiles, editorial spreads, and publication notes.",
+    "content": "Cover Stories is reserved here for cover scans, feature excerpts, publication dates, styling notes, and magazine-era references."
+  },
+  {
+    "slug": "editorial-spreads",
+    "title": "Editorial Spreads",
+    "eyebrow": "Magazine 02",
+    "year": "Archive",
+    "summary": "A page for fashion editorials, portrait sessions, scan sets, and visual magazine layouts.",
+    "content": "Editorial Spreads is reserved here for magazine imagery, captions, styling credits, scan notes, and related archive material."
+  }
+]

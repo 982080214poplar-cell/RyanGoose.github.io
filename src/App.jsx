@@ -1,11 +1,13 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
-import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Menu, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Music, Newspaper, Menu, X } from "lucide-react";
 import { Routes, Route, Link, Navigate, useParams, useLocation } from "react-router-dom";
 import films from "./data/films.json";
 import interviewEras from "./data/interviews.json";
 import gallery from "./data/gallery.json";
 import handcraftSections from "./data/handcraft.json";
+import musicSections from "./data/music.json";
+import magazineSections from "./data/magazine.json";
 import snlSeasons from "./data/snl.json";
 import reasons from "./data/reasons.json";
 
@@ -92,7 +94,7 @@ function Layout({ children }) {
             overflow-hidden
             max-h-0
             transition-all duration-300 ease-in-out
-            group-hover:max-h-40
+            group-hover:max-h-52
             min-[920px]:block
           "
         >
@@ -101,12 +103,19 @@ function Layout({ children }) {
               More archive sections
             </p>
 
-            <div className="flex flex-wrap gap-x-8 gap-y-4">
+            <div className="flex flex-wrap gap-x-8 gap-y-2">
               <MoreArchiveLink to="/saturday-night-live">
                 Saturday Night Live
               </MoreArchiveLink>
               <MoreArchiveLink to="/handcraft">
                 Handcraft
+              </MoreArchiveLink>
+              <MoreArchiveLink to="/music">
+                Music
+              </MoreArchiveLink>
+              <span className="basis-full" aria-hidden="true" />
+              <MoreArchiveLink to="/magazine">
+                Magazine
               </MoreArchiveLink>
             </div>
           </div>
@@ -182,13 +191,29 @@ function Layout({ children }) {
           >
             Handcraft
           </Link>
+          <Link
+            to="/music"
+            onClick={() => setIsSidebarOpen(false)}
+            className="transition hover:text-[#6faef2]"
+          >
+            Music
+          </Link>
+          <Link
+            to="/magazine"
+            onClick={() => setIsSidebarOpen(false)}
+            className="transition hover:text-[#6faef2]"
+          >
+            Magazine
+          </Link>
         </nav>
       </aside>
 
       {children}
 
-      <footer className="mx-auto mt-8 max-w-7xl border-t border-[#3b2a1a]/20 px-6 py-10 text-center text-[15px] text-[#5b4a37] md:px-10">
+      <footer className="mx-auto mt-8 max-w-7xl border-t border-[#3b2a1a]/20 px-6 py-10 text-center text-[clamp(9px,2.25vw,15px)] text-[#5b4a37] md:px-10">
+        <span className="block whitespace-nowrap">
         This is an unofficial fan site and is not affiliated with Ryan Gosling or any official representatives.
+        </span>
       </footer>
     </div>
   );
@@ -959,6 +984,7 @@ function HeroImageDeck({
   layoutShift,
 }) {
   const [hearts, setHearts] = useState([]);
+  const [hoveredCard, setHoveredCard] = useState(null);
   const deckRef = useRef(null);
 
   const cardWidth = 520;
@@ -1017,8 +1043,7 @@ function HeroImageDeck({
   }
 
   function getCardZ(index) {
-    // 卡堆整体要压在主图细边框之上，避免边框“浮”在卡牌前面。
-    return 230 + index;
+    return 160 + index;
   }
 
   function getHitboxLeft(index) {
@@ -1039,7 +1064,7 @@ function HeroImageDeck({
         }`}
       >
         <div className="hero-main-visual relative pt-7">
-          <div className="pointer-events-none absolute inset-x-[-20px] top-0 bottom-7 rounded-[3rem] border-2 border-[#3b2a1a]/15" />
+          <div className="pointer-events-none absolute bottom-7 left-[-42px] right-[0px] top-[-24px] rounded-[3rem] border-2 border-[#3b2a1a]/15" />
           <div
             onClick={handleClick}
             onDoubleClick={() => setIsOpen((current) => !current)}
@@ -1056,17 +1081,17 @@ function HeroImageDeck({
         </div>
 
         <div
-          className={`mt-6 overflow-hidden transition-all duration-500 ${
-            isOpen ? "max-h-[290px] opacity-100" : "max-h-0 opacity-0"
+          className={`hero-mobile-deck-tray mt-6 overflow-hidden transition-all duration-500 ${
+            isOpen ? "max-h-[380px] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="hero-mobile-card-scroller flex gap-4 overflow-x-auto px-1 pb-12 pt-6">
             {deckImages.map((item) => (
               <div
                 key={item.slug}
                 tabIndex={0}
                 onClick={handleClick}
-                className="group relative shrink-0 rounded-[1.8rem] bg-[#9cc9ff] p-3 shadow-[0_12px_24px_rgba(59,42,26,0.12)] transition hover:-translate-y-1 focus:outline-none"
+                className="hero-mobile-pop-card group relative shrink-0 rounded-[1.8rem] bg-[#9cc9ff] p-3 shadow-[0_12px_24px_rgba(59,42,26,0.12)] focus:outline-none"
               >
                 <img
                   src={item.img}
@@ -1110,18 +1135,26 @@ function HeroImageDeck({
       >
         {deckImages.map((item, index) => {
           const isActive = activeCard === index;
+          const isHovered = hoveredCard === index;
 
           return (
             <div
               key={item.slug}
-              className="absolute top-[28px] z-10 h-[620px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="hero-pop-card absolute top-[28px] z-10 h-[620px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_18px_35px_rgba(59,42,26,0.14)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
               style={{
                 left: `${getCardLeft(index)}px`,
                 width: `${getCardWidth(index)}px`,
                 opacity: isOpen ? 1 : 0,
                 zIndex: getCardZ(index),
                 pointerEvents: "none",
-                transform: isActive ? "translateY(-6px)" : "translateY(0)",
+                boxShadow: isHovered
+                  ? "0 26px 50px rgba(59,42,26,0.22)"
+                  : undefined,
+                transform: isHovered
+                  ? "translateY(-10px) scale(1.018)"
+                  : isActive
+                    ? "translateY(-6px)"
+                    : "translateY(0)",
               }}
             >
               <div className="h-full overflow-hidden rounded-[2.5rem]">
@@ -1135,28 +1168,31 @@ function HeroImageDeck({
           );
         })}
 
-        {isOpen &&
-          deckImages.map((item, index) => (
-            <button
-              key={`hitbox-${item.slug}`}
-              type="button"
-              onClick={(event) => {
-                handleClick(event);
-                event.stopPropagation();
-                setActiveCard((current) =>
-                  current === index ? null : index
-                );
-              }}
-              className="absolute top-[28px] h-[620px] rounded-[3rem] transition-transform duration-300 hover:-translate-y-2"
-              style={{
-                left: `${getHitboxLeft(index)}px`,
-                width: `${getHitboxWidth(index)}px`,
-                zIndex: 260 + index,
-                background: "transparent",
-              }}
-              aria-label={`Open ${item.title}`}
-            />
-          ))}
+        {isOpen && deckImages.map((item, index) => (
+          <button
+            key={`hitbox-${item.slug}`}
+            type="button"
+            onClick={(event) => {
+              handleClick(event);
+              event.stopPropagation();
+              setActiveCard((current) =>
+                current === index ? null : index
+              );
+            }}
+            onMouseEnter={() => setHoveredCard(index)}
+            onMouseLeave={() => setHoveredCard((current) => current === index ? null : current)}
+            onFocus={() => setHoveredCard(index)}
+            onBlur={() => setHoveredCard((current) => current === index ? null : current)}
+            className="absolute top-[28px] h-[620px] rounded-[3rem]"
+            style={{
+              left: `${getHitboxLeft(index)}px`,
+              width: `${getHitboxWidth(index)}px`,
+              zIndex: activeCard === index ? 185 : 320 + index,
+              background: "transparent",
+            }}
+            aria-label={`Open ${item.title}`}
+          />
+        ))}
 
         {isOpen && activeCard !== null && deckImages[activeCard] && (
           <div
@@ -1165,9 +1201,13 @@ function HeroImageDeck({
               handleClick(event);
               event.stopPropagation();
             }}
+            onMouseEnter={() => setHoveredCard(activeCard)}
+            onMouseLeave={() => setHoveredCard((current) => current === activeCard ? null : current)}
+            onFocus={() => setHoveredCard(activeCard)}
+            onBlur={() => setHoveredCard((current) => current === activeCard ? null : current)}
             style={{
               left: `${getCardLeft(activeCard)}px`,
-              zIndex: 280,
+              zIndex: 190,
             }}
           >
             <Link
@@ -1181,17 +1221,17 @@ function HeroImageDeck({
         )}
 
         <div
-          className={`hero-main-visual absolute top-0 z-[220] h-[648px] w-[560px] ${
+          className={`hero-main-visual absolute top-0 z-[240] h-[648px] w-[560px] ${
             isTransitioning ? "hero-main-visual-static" : ""
           }`}
           style={{ left: `${mainLeft - 20}px` }}
         >
           <div
-            className="hero-main-outline pointer-events-none absolute left-0 top-[28px] z-[1] h-[620px] w-[560px] rounded-[3rem] border-2 border-[#3b2a1a]/15"
+            className="hero-main-outline pointer-events-none absolute left-[-24px] top-[2px] z-[1] h-[620px] w-[560px] rounded-[3rem] border-2 border-[#3b2a1a]/15"
           />
 
           <div
-            className="hero-main-card absolute left-[20px] top-[28px] z-[2] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)]"
+            className="hero-main-card hero-main-card-desktop absolute left-[20px] top-[28px] z-[2] h-[620px] w-[520px] rounded-[3rem] bg-[#9cc9ff] p-5 shadow-[0_20px_40px_rgba(59,42,26,0.14)]"
             onClick={handleClick}
             onDoubleClick={() => {
               setIsOpen((current) => !current);
@@ -1219,7 +1259,7 @@ function HeroImageDeck({
         ))}
 
         <div className="absolute bottom-8 right-24 z-[300] rounded-full bg-[#fff1b5] px-5 py-3 text-[14px] shadow">
-          Double click to open · click a card
+          Double click to open
         </div>
       </div>
     </div>
@@ -1247,32 +1287,10 @@ function HeroTransitionOverlay({ transition }) {
   const activeSnapshot = isOutPhase ? fromSnapshot : toSnapshot;
   if (!activeSnapshot) return null;
 
-  const { bottomWaveSnapshot, mainHtml, mainRect, topWaveSnapshot } = activeSnapshot;
-  const primaryWaveSnapshot =
-    toMode === "mobile"
-      ? isOutPhase
-        ? topWaveSnapshot
-        : bottomWaveSnapshot
-      : isOutPhase
-        ? bottomWaveSnapshot
-        : topWaveSnapshot;
-  const waveSnapshot = primaryWaveSnapshot ?? topWaveSnapshot ?? bottomWaveSnapshot ?? null;
+  const { mainHtml, mainRect } = activeSnapshot;
 
   return (
     <div aria-hidden="true" className={`hero-motion-overlay-main hero-motion-mode-${stageMode} ${phaseClass}`}>
-      {waveSnapshot?.html && (
-        <div
-          className="hero-motion-wave"
-          style={{
-            height: `${waveSnapshot.rect.height}px`,
-            left: `${waveSnapshot.rect.left}px`,
-            top: `${waveSnapshot.rect.top}px`,
-            width: `${waveSnapshot.rect.width}px`,
-          }}
-          dangerouslySetInnerHTML={{ __html: waveSnapshot.html }}
-        />
-      )}
-
       <div
         className="hero-motion-main"
         style={{
@@ -1306,29 +1324,12 @@ function createMotionSnapshot(heroSectionElement) {
   if (!heroSectionElement) return null;
   const mainElement = heroSectionElement.querySelector(".hero-main-visual");
   if (!mainElement) return null;
-  const topWaveElement = heroSectionElement.querySelector(".hero-wave-field-top");
-  const bottomWaveElement = heroSectionElement.querySelector(".hero-wave-field-bottom");
   const mainRect = mainElement.getBoundingClientRect();
   const naturalWidth = Math.max(1, mainElement.offsetWidth || Math.round(mainRect.width));
   const naturalHeight = Math.max(1, mainElement.offsetHeight || Math.round(mainRect.height));
   const mainClone = sanitizeSnapshotNode(mainElement);
 
-  const topWaveSnapshot = topWaveElement
-    ? {
-        html: sanitizeSnapshotNode(topWaveElement).outerHTML,
-        rect: topWaveElement.getBoundingClientRect(),
-      }
-    : null;
-
-  const bottomWaveSnapshot = bottomWaveElement
-    ? {
-        html: sanitizeSnapshotNode(bottomWaveElement).outerHTML,
-        rect: bottomWaveElement.getBoundingClientRect(),
-      }
-    : null;
-
   return {
-    bottomWaveSnapshot,
     mainHtml: mainClone.outerHTML,
     mainRect: {
       height: mainRect.height,
@@ -1340,7 +1341,6 @@ function createMotionSnapshot(heroSectionElement) {
       top: mainRect.top,
       width: mainRect.width,
     },
-    topWaveSnapshot,
   };
 }
 
@@ -1428,7 +1428,7 @@ function HomePage() {
   useEffect(() => {
     const BREAKPOINT = 1024;
     const OUT_PHASE_MS = 700;
-    const OUT_SWITCH_MS = 690;
+    const OUT_SWITCH_MS = OUT_PHASE_MS;
     const IN_PHASE_MS = 800;
     const mediaQuery = window.matchMedia(`(min-width: ${BREAKPOINT}px)`);
     let outTimer;
@@ -1476,7 +1476,18 @@ function HomePage() {
       transitionId += 1;
       const token = transitionId;
       clearTransitionTimers();
+      setIsHeroDeckOpen(false);
+      setActiveHeroCard(null);
       setHeroMotionTick((current) => current + 1);
+
+      const cachedFromSnapshot = stableSnapshotsRef.current[currentMode];
+
+      if (isValidMotionSnapshot(cachedFromSnapshot)) {
+        flushSync(() => {
+          runSwitch(cachedFromSnapshot);
+        });
+        return;
+      }
 
       captureMotionSnapshotWithRetry(heroSectionRef.current, currentMode, 20, (strictFromSnapshot) => {
         runSwitch(strictFromSnapshot);
@@ -1629,34 +1640,32 @@ function HomePage() {
           isHeroDeckOpen ? "hero-is-open" : ""
         } ${heroTransition ? "hero-is-transitioning" : ""} z-20`}
       >
-        {["top", "bottom"].map((placement) => (
-          <svg
-            key={placement}
-            aria-hidden="true"
-            className={`hero-wave-field hero-wave-field-${placement} pointer-events-none absolute z-0 text-[#9cc9ff]`}
-            viewBox="0 0 1180 220"
-            preserveAspectRatio="none"
-          >
-            <path
-              d={HERO_WAVE_TOP_PATH}
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="5"
-              opacity="0.56"
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              d={HERO_WAVE_BOTTOM_PATH}
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="5"
-              opacity="0.56"
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-        ))}
+        <svg
+          aria-hidden="true"
+          className="hero-wave-field hero-wave-field-top pointer-events-none absolute z-0 text-[#9cc9ff]"
+          viewBox="0 0 1180 220"
+          preserveAspectRatio="none"
+        >
+          <path
+            d={HERO_WAVE_TOP_PATH}
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="8"
+            opacity="0.72"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            className="hero-wave-secondary-path"
+            d={HERO_WAVE_BOTTOM_PATH}
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="8"
+            opacity="0.72"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
 
         <div
           ref={heroGridRef}
@@ -1675,7 +1684,7 @@ function HomePage() {
               <span aria-hidden="true" className="absolute inset-0 z-0 block" />
               <svg
                 aria-hidden="true"
-                className="pointer-events-none absolute left-[0.055em] top-[1.93em] z-20 h-[0.72em] w-[0.72em] -translate-x-1/2 -translate-y-1/2 text-[#9cc9ff]"
+                className="pointer-events-none absolute left-[0.05em] top-[2.04em] z-20 h-[0.72em] w-[0.72em] -translate-x-1/2 -translate-y-1/2 text-[#9cc9ff]"
                 viewBox="0 0 80 80"
               >
                 <g fill="currentColor">
@@ -1702,19 +1711,9 @@ function HomePage() {
 
             <div className="relative z-10 mt-7 h-[4px] w-40 rounded-full bg-[#6faef2]" />
 
-            <p className="relative z-10 mt-8 text-[clamp(22px,2.2vw,30px)] leading-[1.2]">
-              <span className="block whitespace-nowrap sm:hidden">Ryan Gosling centered</span>
-              <span className="block whitespace-nowrap sm:hidden">collection of films,</span>
-              <span className="block whitespace-nowrap sm:hidden">interviews and images.</span>
-
-              <span className="hidden whitespace-nowrap sm:block lg:hidden">Ryan Gosling centered collection</span>
-              <span className="hidden whitespace-nowrap sm:block lg:hidden">of films, interviews and images.</span>
-
-              <span className="hidden whitespace-nowrap lg:block xl:hidden">Ryan Gosling centered collection of films,</span>
-              <span className="hidden whitespace-nowrap lg:block xl:hidden">interviews and images.</span>
-
-              <span className="hidden whitespace-nowrap xl:block">Ryan Gosling centered collection of films,</span>
-              <span className="hidden whitespace-nowrap xl:block">interviews and images.</span>
+            <p className="relative z-10 mt-8 text-[clamp(14px,4vw,30px)] leading-[1.2] sm:text-[clamp(22px,2.2vw,30px)]">
+              <span className="block whitespace-nowrap">Ryan Gosling centered collection of films,</span>
+              <span className="block whitespace-nowrap">interviews and images.</span>
             </p>
           </div>
 
@@ -2227,6 +2226,168 @@ function LegacyHandcraftRedirect() {
   return <Navigate to={`/handcraft/${handcraftSlug}`} replace />;
 }
 
+function MusicPage() {
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" icon={<Music />} />
+        <PageTitle>
+          Music
+        </PageTitle>
+
+        <p className="mb-10 max-w-3xl text-[20px] leading-[1.6] text-[#5a4631] md:text-[22px]">
+          Music-related archive notes, performances, soundtrack moments, and project pages.
+        </p>
+
+        <ArchiveLayoutGrid
+          aspectRatio={1.65}
+          columnRules={[
+            { min: 768, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={24}
+          items={musicSections}
+          renderItem={(item) => (
+            <Link
+              to={`/music/${item.slug}`}
+              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+            >
+              <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+                {item.eyebrow} · {item.year}
+              </p>
+              <CardTitle className="mt-2 text-[30px] font-bold uppercase leading-[1.08] md:text-[38px]">
+                {item.title}
+              </CardTitle>
+              <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">
+                {item.summary}
+              </p>
+            </Link>
+          )}
+        />
+      </section>
+    </Layout>
+  );
+}
+
+function MusicDetailPage() {
+  const { musicSlug } = useParams();
+  const item = musicSections.find((section) => section.slug === musicSlug);
+
+  if (!item) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
+          <p className="text-[22px]">Music section not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/music" label="Back to Music" icon={<Music />} />
+
+        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+            {item.eyebrow} · {item.year}
+          </p>
+          <DetailTitle className="uppercase">
+            {item.title}
+          </DetailTitle>
+          <p className="mt-6 max-w-3xl text-[19px] leading-[1.6] text-[#5a4631] md:text-[22px]">
+            {item.summary}
+          </p>
+          <p className="mt-8 max-w-3xl text-[20px] leading-[1.7] text-[#5a4631]">
+            {item.content}
+          </p>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+function MagazinePage() {
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/" label="Back to Home" icon={<Newspaper />} />
+        <PageTitle>
+          Magazine
+        </PageTitle>
+
+        <p className="mb-10 max-w-3xl text-[20px] leading-[1.6] text-[#5a4631] md:text-[22px]">
+          Magazine covers, editorial spreads, profiles, scans, and publication notes.
+        </p>
+
+        <ArchiveLayoutGrid
+          aspectRatio={1.65}
+          columnRules={[
+            { min: 768, columns: 2 },
+            { min: 0, columns: 1 },
+          ]}
+          gap={24}
+          items={magazineSections}
+          renderItem={(item) => (
+            <Link
+              to={`/magazine/${item.slug}`}
+              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+            >
+              <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+                {item.eyebrow} · {item.year}
+              </p>
+              <CardTitle className="mt-2 text-[30px] font-bold uppercase leading-[1.08] md:text-[38px]">
+                {item.title}
+              </CardTitle>
+              <p className="mt-4 text-[18px] leading-[1.6] text-[#5a4631]">
+                {item.summary}
+              </p>
+            </Link>
+          )}
+        />
+      </section>
+    </Layout>
+  );
+}
+
+function MagazineDetailPage() {
+  const { magazineSlug } = useParams();
+  const item = magazineSections.find((section) => section.slug === magazineSlug);
+
+  if (!item) {
+    return (
+      <Layout>
+        <section className="mx-auto max-w-7xl px-6 py-20 md:px-10">
+          <p className="text-[22px]">Magazine section not found.</p>
+        </section>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
+        <BackButton to="/magazine" label="Back to Magazine" icon={<Newspaper />} />
+
+        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
+            {item.eyebrow} · {item.year}
+          </p>
+          <DetailTitle className="uppercase">
+            {item.title}
+          </DetailTitle>
+          <p className="mt-6 max-w-3xl text-[19px] leading-[1.6] text-[#5a4631] md:text-[22px]">
+            {item.summary}
+          </p>
+          <p className="mt-8 max-w-3xl text-[20px] leading-[1.7] text-[#5a4631]">
+            {item.content}
+          </p>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
 function SNLPage() {
   return (
     <Layout>
@@ -2395,6 +2556,12 @@ export default function App() {
         <Route path="/handcraft/:handcraftSlug" element={<HandcraftDetailPage />} />
         <Route path="/handmade-drawings" element={<Navigate to="/handcraft" replace />} />
         <Route path="/handmade-drawings/:handcraftSlug" element={<LegacyHandcraftRedirect />} />
+
+        <Route path="/music" element={<MusicPage />} />
+        <Route path="/music/:musicSlug" element={<MusicDetailPage />} />
+
+        <Route path="/magazine" element={<MagazinePage />} />
+        <Route path="/magazine/:magazineSlug" element={<MagazineDetailPage />} />
 
         <Route path="/saturday-night-live" element={<SNLPage />} />
         <Route path="/saturday-night-live/:seasonSlug" element={<SNLSeasonPage />} />
