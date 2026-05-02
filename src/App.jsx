@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
-import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Music, Newspaper, Menu, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Film, Quote, Camera, Star, Tv, Music, Newspaper, Menu, X, Maximize2, SlidersHorizontal, Clock3, ArrowDownAZ, Download } from "lucide-react";
 import { Routes, Route, Link, Navigate, useParams, useLocation } from "react-router-dom";
 import films from "./data/films.json";
 import interviewEras from "./data/interviews.json";
@@ -293,6 +293,74 @@ function DetailImage({ src, alt }) {
         layoutShift ? `is-layout-${layoutShift}` : ""
       }`}
     />
+  );
+}
+
+function GalleryDetailImage({ src, alt, onOpen }) {
+  return (
+    <div className="group/detail-image relative">
+      <DetailImage src={src} alt={alt} />
+      <button
+        type="button"
+        onClick={onOpen}
+        className="absolute bottom-4 right-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#9cc9ff] text-[#3b2a1a] opacity-100 shadow-[0_8px_18px_rgba(59,42,26,0.16)] transition hover:-translate-y-0.5 hover:bg-[#fff1b5] focus:outline-none focus:ring-2 focus:ring-[#3b2a1a]/40 sm:opacity-0 sm:group-hover/detail-image:opacity-100 sm:group-focus-within/detail-image:opacity-100"
+        aria-label="Open full image"
+        title="Open full image"
+      >
+        <Maximize2 size={20} strokeWidth={2.3} />
+      </button>
+    </div>
+  );
+}
+
+function FullImageModal({ isOpen, src, alt, onClose }) {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-[#3b2a1a]/80 px-4 py-6 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Full image preview"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-5 top-5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#9cc9ff] text-[#3b2a1a] shadow-[0_8px_18px_rgba(0,0,0,0.2)] transition hover:bg-[#fff1b5] focus:outline-none focus:ring-2 focus:ring-white/70"
+        aria-label="Close full image"
+        title="Close full image"
+      >
+        <X size={21} strokeWidth={2.4} />
+      </button>
+
+      <img
+        src={src}
+        alt={alt}
+        className="max-h-[88vh] max-w-[92vw] rounded-[1.25rem] object-contain shadow-[0_18px_45px_rgba(0,0,0,0.35)]"
+        onClick={(event) => event.stopPropagation()}
+      />
+    </div>
   );
 }
 
@@ -954,7 +1022,95 @@ function InterviewItemCard({ eraSlug, item }) {
   );
 }
 
-function GalleryCard({ item }) {
+const ARCHIVED_GALLERY_STORAGE_KEY = "ryan-gosling-archived-gallery";
+
+function readGallerySlugs(storageKey) {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((slug) => typeof slug === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function useGallerySlugSet(storageKey) {
+  const [slugs, setSlugs] = useState(() => readGallerySlugs(storageKey));
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify(slugs));
+  }, [slugs, storageKey]);
+
+  const toggleSlug = (slug) => {
+    setSlugs((current) =>
+      current.includes(slug)
+        ? current.filter((currentSlug) => currentSlug !== slug)
+        : [...current, slug]
+    );
+  };
+
+  return { slugs, toggleSlug };
+}
+
+function useArchivedGallery() {
+  const { slugs, toggleSlug } = useGallerySlugSet(ARCHIVED_GALLERY_STORAGE_KEY);
+  return { archivedSlugs: slugs, toggleArchivedSlug: toggleSlug };
+}
+
+function downloadGalleryImage(item) {
+  const link = document.createElement("a");
+  const extension = item.img.split(".").pop()?.split("?")[0] || "jpg";
+
+  link.href = item.img;
+  link.download = `${item.slug}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function galleryTagPath(tag) {
+  return `/gallery/tag/${encodeURIComponent(tag)}`;
+}
+
+function GalleryCard({ isArchived = false, item, onToggleArchived }) {
+  return (
+    <div className="archive-card relative flex h-full flex-col transition hover:-translate-y-1">
+      <Link to={`/gallery/${item.slug}`} className="flex h-full flex-col">
+        <img
+          src={item.img}
+          alt={item.title}
+          className="h-[70%] w-full rounded-[1.1rem] object-cover shadow-[0_10px_22px_rgba(59,42,26,0.08)]"
+        />
+        <div className="card-copy">
+          <p className="mt-3 text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
+            {item.date}
+          </p>
+          <CardTitle as="h4" className="mt-1 text-[18px] font-bold leading-[1.2]">
+            {item.title}
+          </CardTitle>
+        </div>
+      </Link>
+
+      <button
+        type="button"
+        onClick={() => onToggleArchived(item.slug)}
+        aria-pressed={isArchived}
+        aria-label={isArchived ? "Remove from archive" : "Archive image"}
+        title={isArchived ? "Remove from archive" : "Archive image"}
+        className="group/archive-star absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#fff1b5] text-[#3b2a1a] shadow-[0_8px_18px_rgba(59,42,26,0.18)] transition hover:-translate-y-0.5 hover:bg-[#9cc9ff] focus:outline-none"
+      >
+        <Star
+          size={18}
+          className={isArchived ? "fill-[#f6c343]" : "fill-transparent"}
+          strokeWidth={2.2}
+        />
+      </button>
+    </div>
+  );
+}
+
+function HomeGalleryCard({ item }) {
   return (
     <Link to={`/gallery/${item.slug}`} className="archive-card flex h-full flex-col transition hover:-translate-y-1">
       <img
@@ -1781,7 +1937,7 @@ function HomePage() {
             { min: 0, columns: 2 },
           ]}
           items={gallery}
-          renderItem={(item) => <GalleryCard item={item} />}
+          renderItem={(item) => <HomeGalleryCard item={item} />}
         />
       </section>
     </Layout>
@@ -1955,7 +2111,7 @@ function InterviewDetailPage() {
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
           <DetailImage src={interview.image} alt={interview.title} />
 
-          <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <div className="detail-panel rounded-[2rem] bg-transparent p-8">
             <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{era.era}</p>
             <DetailTitle>{interview.title}</DetailTitle>
             <p className="mt-3 text-[18px] text-[#6b5948]">
@@ -1973,41 +2129,111 @@ function InterviewDetailPage() {
 }
 
 function GalleryPage() {
-  const { year } = useParams();
+  const { tag } = useParams();
+  const location = useLocation();
+  const [sortMode, setSortMode] = useState("time");
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const { archivedSlugs, toggleArchivedSlug } = useArchivedGallery();
+  const isArchiveView = location.pathname === "/gallery/archive";
+  const activeTag = tag ? decodeURIComponent(tag) : "";
+  const isTagView = Boolean(activeTag);
+  const backTo = isTagView ? location.state?.from ?? "/gallery" : "/";
+  const backLabel = isTagView ? "Back to Gallery Image" : "Back to Home";
+  const sortLabel = sortMode === "time" ? "Time" : "A-Z";
 
-  const years = [...new Set(gallery.map((item) => item.year))].sort((a, b) => b.localeCompare(a));
-  const filteredGallery = year ? gallery.filter((item) => item.year === year) : gallery;
+  const filteredGalleryBase = isArchiveView
+    ? gallery.filter((item) => archivedSlugs.includes(item.slug))
+    : isTagView
+      ? gallery.filter((item) => item.tags?.includes(activeTag) || item.date === activeTag || item.year === activeTag)
+    : gallery;
+  const filteredGallery = [...filteredGalleryBase].sort((a, b) => {
+    if (sortMode === "title") {
+      return a.title.localeCompare(b.title) || a.date.localeCompare(b.date) || a.slug.localeCompare(b.slug);
+    }
+
+    return a.date.localeCompare(b.date) || a.title.localeCompare(b.title) || a.slug.localeCompare(b.slug);
+  });
 
   return (
     <Layout>
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
-        <BackButton to="/" label="Back to Home" icon={<Camera />} />
+        <BackButton to={backTo} label={backLabel} icon={<Camera />} />
         <PageTitle>Gallery</PageTitle>
         <p className="mb-8 max-w-3xl text-[22px] leading-[1.6] text-[#5a4631]">
-          Browse archive images by date, or filter the gallery by year.
+          {isTagView ? `Showing images tagged #${activeTag}.` : "Browse archive images by date or title."}
         </p>
 
-        <div className="mb-10 flex flex-wrap gap-3">
-          <Link
-            to="/gallery"
-            className={`rounded-full px-5 py-2 text-[15px] font-medium ${
-              !year ? "bg-[#9cc9ff]" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]/70"
-            }`}
-          >
-            All
-          </Link>
-
-          {years.map((galleryYear) => (
+        <div className="mb-10 flex items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-3">
             <Link
-              key={galleryYear}
-              to={`/gallery/year/${galleryYear}`}
+              to="/gallery"
               className={`rounded-full px-5 py-2 text-[15px] font-medium ${
-                year === galleryYear ? "bg-[#9cc9ff]" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]/70"
+                !isArchiveView && !isTagView ? "bg-[#9cc9ff]" : "bg-[#f8e6a2] hover:bg-[#9cc9ff]/70"
               }`}
             >
-              {galleryYear}
+              All
             </Link>
-          ))}
+
+            <Link
+              to="/gallery/archive"
+              aria-label="View archived images"
+              title="View archived images"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-[#3b2a1a] transition hover:bg-[#9cc9ff]/70 ${
+                isArchiveView ? "bg-[#9cc9ff]" : "bg-[#f8e6a2]"
+              }`}
+            >
+              <Star
+                size={17}
+                fill={isArchiveView ? "#f6c343" : "none"}
+                strokeWidth={2.2}
+              />
+            </Link>
+          </div>
+
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsSortMenuOpen((current) => !current)}
+              aria-expanded={isSortMenuOpen}
+              aria-label={`Sort gallery by ${sortLabel}`}
+              title={`Sort by ${sortLabel}`}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-[#3b2a1a] transition hover:text-[#6faef2] focus:outline-none"
+            >
+              <SlidersHorizontal size={18} strokeWidth={2.2} />
+            </button>
+
+            {isSortMenuOpen && (
+              <div className="absolute right-0 top-12 z-20 w-36 overflow-hidden rounded-[1rem] bg-[#fff1b5] py-1 shadow-[0_12px_28px_rgba(59,42,26,0.16)]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortMode("time");
+                    setIsSortMenuOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-[14px] font-medium transition hover:bg-[#9cc9ff]/60 ${
+                    sortMode === "time" ? "text-[#3b2a1a]" : "text-[#6b5948]"
+                  }`}
+                >
+                  <Clock3 size={15} fill="none" strokeWidth={2.1} />
+                  Time
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortMode("title");
+                    setIsSortMenuOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-2 px-4 py-2 text-left text-[14px] font-medium transition hover:bg-[#9cc9ff]/60 ${
+                    sortMode === "title" ? "text-[#3b2a1a]" : "text-[#6b5948]"
+                  }`}
+                >
+                  <ArrowDownAZ size={15} strokeWidth={2.1} />
+                  A-Z
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <ArchiveLayoutGrid
@@ -2018,8 +2244,26 @@ function GalleryPage() {
             { min: 0, columns: 2 },
           ]}
           items={filteredGallery}
-          renderItem={(item) => <GalleryCard item={item} />}
+          renderItem={(item) => (
+            <GalleryCard
+              item={item}
+              isArchived={archivedSlugs.includes(item.slug)}
+              onToggleArchived={toggleArchivedSlug}
+            />
+          )}
         />
+
+        {isArchiveView && !filteredGallery.length && (
+          <p className="mt-8 text-[20px] leading-[1.6] text-[#5a4631]">
+            No archived images yet.
+          </p>
+        )}
+
+        {isTagView && !filteredGallery.length && (
+          <p className="mt-8 text-[20px] leading-[1.6] text-[#5a4631]">
+            No images found for #{activeTag}.
+          </p>
+        )}
       </section>
     </Layout>
   );
@@ -2028,6 +2272,10 @@ function GalleryPage() {
 function GalleryDetailPage() {
   const { slug } = useParams();
   const item = gallery.find((g) => g.slug === slug);
+  const [isFullImageOpen, setIsFullImageOpen] = useState(false);
+  const { archivedSlugs, toggleArchivedSlug } = useArchivedGallery();
+  const isArchived = item ? archivedSlugs.includes(item.slug) : false;
+  const itemTags = item ? [item.date, ...(item.tags ?? [])].filter(Boolean) : [];
 
   if (!item) {
     return (
@@ -2045,18 +2293,66 @@ function GalleryDetailPage() {
         <BackButton to="/gallery" label="Back to Gallery" icon={<Camera />} />
 
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[1fr_0.9fr]">
-          <DetailImage src={item.img} alt={item.title} />
+          <GalleryDetailImage
+            src={item.img}
+            alt={item.title}
+            onOpen={() => setIsFullImageOpen(true)}
+          />
 
-          <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
-            <p className="text-[16px] text-[#6b5948]">Gallery Entry · {item.date}</p>
+          <div className="detail-panel rounded-[2rem] bg-transparent p-8">
+            <p className="text-[16px] text-[#6b5948]">{item.date}</p>
             <DetailTitle>{item.title}</DetailTitle>
             <p className="mt-8 text-[22px] leading-[1.6] text-[#5a4631]">{item.caption}</p>
-            <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[14px] font-medium">
-              <Star size={16} /> Archive image
+            {itemTags.length > 0 && (
+              <div className="mt-8 border-t border-[#3b2a1a]/20 pt-5">
+                <div className="flex flex-wrap gap-3">
+                  {itemTags.map((tag) => (
+                    <Link
+                      key={tag}
+                      to={galleryTagPath(tag)}
+                      state={{ from: `/gallery/${item.slug}` }}
+                      className="inline-flex rounded-full bg-transparent px-0 py-1 text-[17px] font-medium text-[#6b5948] transition duration-300 ease-out hover:-translate-y-1 hover:text-[#6faef2]"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => toggleArchivedSlug(item.slug)}
+                aria-pressed={isArchived}
+                className="inline-flex items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[14px] font-medium transition hover:-translate-y-0.5 hover:bg-[#fff1b5] focus:outline-none focus:ring-2 focus:ring-[#3b2a1a]/35"
+              >
+                <Star
+                  size={16}
+                  fill={isArchived ? "#f6c343" : "none"}
+                  strokeWidth={2.2}
+                />
+                Archive
+              </button>
+
+              <button
+                type="button"
+                onClick={() => downloadGalleryImage(item)}
+                className="inline-flex items-center gap-2 rounded-full bg-[#9cc9ff] px-4 py-2 text-[14px] font-medium transition hover:-translate-y-0.5 hover:bg-[#fff1b5] focus:outline-none focus:ring-2 focus:ring-[#3b2a1a]/35"
+              >
+                <Download size={16} strokeWidth={2.2} />
+                Download
+              </button>
             </div>
           </div>
         </div>
       </section>
+
+      <FullImageModal
+        isOpen={isFullImageOpen}
+        src={item.img}
+        alt={item.title}
+        onClose={() => setIsFullImageOpen(false)}
+      />
     </Layout>
   );
 }
@@ -2084,7 +2380,7 @@ function ReasonsPage() {
           renderItem={(reason) => (
             <Link
               to={`/100-reasons/${reason.slug}`}
-              className="archive-card card-copy flex h-full flex-col rounded-[1.25rem] bg-[#f8e6a2] p-5 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[1.25rem] bg-transparent p-5 transition hover:-translate-y-1"
             >
               <p className="text-[14px] uppercase tracking-[0.08em] text-[#6faef2]">
                 Reason {reason.number}
@@ -2124,7 +2420,7 @@ function ReasonDetailPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/100-reasons" label="Back to 100 Reasons" icon={<Sparkles />} />
 
-        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+        <div className="detail-panel mt-8 rounded-[2rem] bg-transparent p-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             Reason {reason.number}
           </p>
@@ -2166,7 +2462,7 @@ function HandcraftPage() {
           renderItem={(item) => (
             <Link
               to={`/handcraft/${item.slug}`}
-              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-transparent p-8 transition hover:-translate-y-1"
             >
               <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
                 {item.eyebrow}
@@ -2204,7 +2500,7 @@ function HandcraftDetailPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/handcraft" label="Back to Handcraft" icon={<Star />} />
 
-        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+        <div className="detail-panel mt-8 rounded-[2rem] bg-transparent p-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             {item.eyebrow}
           </p>
@@ -2250,7 +2546,7 @@ function MusicPage() {
           renderItem={(item) => (
             <Link
               to={`/music/${item.slug}`}
-              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-transparent p-8 transition hover:-translate-y-1"
             >
               <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
                 {item.eyebrow} · {item.year}
@@ -2288,7 +2584,7 @@ function MusicDetailPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/music" label="Back to Music" icon={<Music />} />
 
-        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+        <div className="detail-panel mt-8 rounded-[2rem] bg-transparent p-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             {item.eyebrow} · {item.year}
           </p>
@@ -2331,7 +2627,7 @@ function MagazinePage() {
           renderItem={(item) => (
             <Link
               to={`/magazine/${item.slug}`}
-              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[2rem] bg-transparent p-8 transition hover:-translate-y-1"
             >
               <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
                 {item.eyebrow} · {item.year}
@@ -2369,7 +2665,7 @@ function MagazineDetailPage() {
       <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-10">
         <BackButton to="/magazine" label="Back to Magazine" icon={<Newspaper />} />
 
-        <div className="detail-panel mt-8 rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+        <div className="detail-panel mt-8 rounded-[2rem] bg-transparent p-8">
           <p className="text-[16px] uppercase tracking-[0.08em] text-[#6faef2]">
             {item.eyebrow} · {item.year}
           </p>
@@ -2411,7 +2707,7 @@ function SNLPage() {
           renderItem={(season) => (
             <Link
               to={`/saturday-night-live/${season.slug}`}
-              className="archive-card card-copy flex h-full flex-col rounded-[1.5rem] bg-[#f8e6a2] p-7 shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card card-copy flex h-full flex-col rounded-[1.5rem] bg-transparent p-7 transition hover:-translate-y-1"
             >
               <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">{season.year}</p>
               <CardTitle className="mt-2 text-[32px] font-bold uppercase leading-[1.08]">
@@ -2467,7 +2763,7 @@ function SNLSeasonPage() {
           renderItem={(episode) => (
             <Link
               to={`/saturday-night-live/${season.slug}/${episode.slug}`}
-              className="archive-card flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-[#f8e6a2] shadow-[0_10px_22px_rgba(59,42,26,0.08)] transition hover:-translate-y-1"
+              className="archive-card flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-transparent transition hover:-translate-y-1"
             >
               <img src={episode.image} alt={episode.title} className="h-[52%] w-full object-cover" />
               <div className="card-copy p-6">
@@ -2510,7 +2806,7 @@ function SNLEpisodePage() {
         <div className="detail-grid mt-8 grid gap-10 lg:grid-cols-[0.95fr_1.05fr]">
           <DetailImage src={episode.image} alt={episode.title} />
 
-          <div className="detail-panel rounded-[2rem] bg-[#f8e6a2] p-8 shadow-[0_10px_22px_rgba(59,42,26,0.08)]">
+          <div className="detail-panel rounded-[2rem] bg-transparent p-8">
             <p className="text-[15px] uppercase tracking-[0.08em] text-[#6faef2]">
               {season.season} · {episode.episode}
             </p>
@@ -2549,7 +2845,8 @@ export default function App() {
         <Route path="/interviews/:eraSlug/:interviewSlug" element={<InterviewDetailPage />} />
 
         <Route path="/gallery" element={<GalleryPage />} />
-        <Route path="/gallery/year/:year" element={<GalleryPage />} />
+        <Route path="/gallery/archive" element={<GalleryPage />} />
+        <Route path="/gallery/tag/:tag" element={<GalleryPage />} />
         <Route path="/gallery/:slug" element={<GalleryDetailPage />} />
 
         <Route path="/handcraft" element={<HandcraftPage />} />
